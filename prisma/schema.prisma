@@ -1,0 +1,135 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../backend/src/generated/prisma"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+model Member {
+  id                    Int      @id @default(autoincrement())
+  name                  String
+  phone                 String?
+  notes                 String?  @db.Text
+  defaultCommissionRate Decimal  @default(0) @db.Decimal(5, 2)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  applications     Application[]
+  ledgerEntries    Ledger[]
+  groupMemberships ParticipantGroupMember[]
+}
+
+enum IpoStatus {
+  DRAFT
+  OPEN
+  APPLIED
+  ALLOTTED
+  SOLD
+  SETTLED
+  COMPLETE
+}
+
+model Ipo {
+  id         Int       @id @default(autoincrement())
+  company    String
+  issuePrice Decimal   @db.Decimal(12, 2)
+  lotSize    Int
+  status     IpoStatus @default(DRAFT)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  applications  Application[]
+  ledgerEntries Ledger[]
+}
+
+enum ApplicationStatus {
+  APPLIED
+  ALLOTTED
+  NOT_ALLOTTED
+  PARTIALLY_SOLD
+  SOLD
+  SETTLED
+}
+
+model Application {
+  id             Int               @id @default(autoincrement())
+  ipoId          Int
+  memberId       Int
+  lots           Int
+  shares         Int               @default(0)
+  commissionRate Decimal?          @db.Decimal(5, 2)
+  status         ApplicationStatus @default(APPLIED)
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  ipo    Ipo    @relation(fields: [ipoId], references: [id])
+  member Member @relation(fields: [memberId], references: [id])
+  sales  Sale[]
+
+  @@unique([ipoId, memberId])
+}
+
+model Sale {
+  id            Int      @id @default(autoincrement())
+  applicationId Int
+  shares        Int
+  sellPrice     Decimal  @db.Decimal(12, 2)
+  soldAt        DateTime @default(now())
+  createdAt     DateTime @default(now())
+
+  application   Application @relation(fields: [applicationId], references: [id])
+  ledgerEntries Ledger[]
+
+  @@index([applicationId])
+}
+
+enum LedgerType {
+  MONEY_SENT
+  MONEY_RETURNED
+  PROFIT
+  LOSS
+  COMMISSION
+  ADJUSTMENT
+}
+
+model Ledger {
+  id          Int        @id @default(autoincrement())
+  memberId    Int
+  ipoId       Int?
+  saleId      Int?
+  type        LedgerType
+  credit      Decimal    @default(0) @db.Decimal(12, 2)
+  debit       Decimal    @default(0) @db.Decimal(12, 2)
+  description String?    @db.Text
+  createdAt   DateTime   @default(now())
+
+  member Member @relation(fields: [memberId], references: [id])
+  ipo    Ipo?   @relation(fields: [ipoId], references: [id])
+  sale   Sale?  @relation(fields: [saleId], references: [id])
+
+  @@index([memberId])
+  @@index([ipoId])
+  @@index([saleId])
+}
+
+model ParticipantGroup {
+  id        Int      @id @default(autoincrement())
+  name      String
+  isDefault Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  members ParticipantGroupMember[]
+}
+
+model ParticipantGroupMember {
+  id       Int @id @default(autoincrement())
+  groupId  Int
+  memberId Int
+
+  group  ParticipantGroup @relation(fields: [groupId], references: [id])
+  member Member           @relation(fields: [memberId], references: [id])
+
+  @@unique([groupId, memberId])
+}

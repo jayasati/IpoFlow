@@ -1,0 +1,6 @@
+node_modules
+dist
+build
+backend/src/generated
+frontend/dist
+prisma/migrations
