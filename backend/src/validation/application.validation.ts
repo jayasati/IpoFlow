@@ -16,4 +16,9 @@ export const applicationListQuerySchema = z.object({
   ipoId: z.coerce.number().int().positive(),
 });
 
+export const updateAllotmentSchema = z.object({
+  shares: z.coerce.number().int().min(0, "Shares cannot be negative"),
+});
+
 export type BulkApplicationBody = z.infer<typeof bulkApplicationSchema>;
+export type UpdateAllotmentInput = z.infer<typeof updateAllotmentSchema>;

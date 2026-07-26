@@ -1,13 +1,25 @@
 import { prisma } from "../config/prisma";
 import { Prisma } from "../generated/prisma/client";
+import type { ApplicationStatus } from "../generated/prisma/client";
 
 export interface BulkApplicationItem {
   memberId: number;
   lots: number;
 }
 
+export interface UpdateAllotmentData {
+  shares: number;
+  status: ApplicationStatus;
+}
+
 const withMember = {
   member: true,
+} satisfies Prisma.ApplicationInclude;
+
+const withDetails = {
+  ipo: true,
+  member: true,
+  sales: true,
 } satisfies Prisma.ApplicationInclude;
 
 export const applicationRepository = {
@@ -17,6 +29,14 @@ export const applicationRepository = {
       include: withMember,
       orderBy: { member: { name: "asc" } },
     });
+  },
+
+  findById(id: number) {
+    return prisma.application.findUnique({ where: { id }, include: withDetails });
+  },
+
+  updateAllotment(id: number, data: UpdateAllotmentData) {
+    return prisma.application.update({ where: { id }, data, include: withMember });
   },
 
   async createMany(ipoId: number, applications: BulkApplicationItem[]) {
