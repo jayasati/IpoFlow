@@ -3,6 +3,7 @@ import { NavLink, Outlet } from "react-router-dom";
 const navItems = [
   { to: "/dashboard", label: "Dashboard" },
   { to: "/members", label: "Members" },
+  { to: "/ipos", label: "IPOs" },
 ];
 
 export function AppShell() {

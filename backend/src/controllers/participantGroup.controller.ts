@@ -21,6 +21,11 @@ export async function getGroup(req: Request, res: Response): Promise<void> {
   res.json(group);
 }
 
+export async function getDefaultGroup(_req: Request, res: Response): Promise<void> {
+  const group = await participantGroupService.getDefault();
+  res.json(group);
+}
+
 export async function createGroup(req: Request, res: Response): Promise<void> {
   const input = createGroupSchema.parse(req.body);
   const group = await participantGroupService.create(input);

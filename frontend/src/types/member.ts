@@ -17,13 +17,8 @@ export interface MemberListParams {
   sortOrder?: "asc" | "desc";
 }
 
-export interface PaginatedResponse<T> {
-  data: T[];
-  page: number;
-  pageSize: number;
-  total: number;
-  totalPages: number;
-}
+// Re-exported for backward compatibility — the canonical definition now lives in ./pagination.
+export type { PaginatedResponse } from "./pagination";
 
 export interface CreateMemberInput {
   name: string;

@@ -3,6 +3,7 @@ import {
   addGroupMember,
   createGroup,
   deleteGroup,
+  getDefaultGroup,
   getGroup,
   listGroups,
   removeGroupMember,
@@ -14,6 +15,8 @@ export const participantGroupRouter = Router();
 
 participantGroupRouter.get("/", listGroups);
 participantGroupRouter.post("/", createGroup);
+// Must be registered before "/:id" so "default" isn't captured as an :id param.
+participantGroupRouter.get("/default", getDefaultGroup);
 participantGroupRouter.get("/:id", getGroup);
 participantGroupRouter.put("/:id", updateGroup);
 participantGroupRouter.delete("/:id", deleteGroup);

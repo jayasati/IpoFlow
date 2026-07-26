@@ -14,6 +14,10 @@ export function getGroup(id: number): Promise<ParticipantGroup> {
   return apiGet(`/groups/${id}`);
 }
 
+export function getDefaultGroup(): Promise<ParticipantGroup | null> {
+  return apiGet(`/groups/default`);
+}
+
 export function createGroup(input: CreateGroupInput): Promise<ParticipantGroup> {
   return apiPost("/groups", input);
 }

@@ -21,6 +21,13 @@ export const participantGroupRepository = {
     });
   },
 
+  findDefault() {
+    return prisma.participantGroup.findFirst({
+      where: { isDefault: true },
+      include: withMembers,
+    });
+  },
+
   create(data: { name: string; isDefault: boolean; memberIds: number[] }) {
     return prisma.$transaction(async (tx) => {
       if (data.isDefault) {

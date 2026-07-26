@@ -17,6 +17,10 @@ export const participantGroupService = {
     return group;
   },
 
+  getDefault() {
+    return participantGroupRepository.findDefault();
+  },
+
   create(input: CreateGroupInput) {
     return participantGroupRepository.create(input);
   },
