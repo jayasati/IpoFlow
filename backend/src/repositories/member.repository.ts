@@ -54,4 +54,8 @@ export const memberRepository = {
   delete(id: number) {
     return prisma.member.delete({ where: { id } });
   },
+
+  count(): Promise<number> {
+    return prisma.member.count();
+  },
 };

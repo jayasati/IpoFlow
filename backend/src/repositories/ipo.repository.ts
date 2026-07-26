@@ -10,6 +10,11 @@ export interface IpoListFilter {
   take: number;
 }
 
+export interface IpoStatusCount {
+  status: IpoStatus;
+  count: number;
+}
+
 const withApplicationCount = {
   _count: { select: { applications: true } },
 } satisfies Prisma.IpoInclude;
@@ -58,5 +63,15 @@ export const ipoRepository = {
 
   delete(id: number) {
     return prisma.ipo.delete({ where: { id } });
+  },
+
+  /** One query, grouped by status - serves both the "Active IPOs" count and the
+   * status breakdown chart, avoiding a separate count() call. */
+  async countByStatus(): Promise<IpoStatusCount[]> {
+    const results = await prisma.ipo.groupBy({
+      by: ["status"],
+      _count: { _all: true },
+    });
+    return results.map((row) => ({ status: row.status, count: row._count._all }));
   },
 };

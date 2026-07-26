@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { applicationRouter } from "./application.routes";
+import { dashboardRouter } from "./dashboard.routes";
 import { healthRouter } from "./health.routes";
 import { ipoRouter } from "./ipo.routes";
 import { memberRouter } from "./member.routes";
@@ -14,3 +15,4 @@ apiRouter.use("/groups", participantGroupRouter);
 apiRouter.use("/ipos", ipoRouter);
 apiRouter.use("/applications", applicationRouter);
 apiRouter.use("/settlement", settlementRouter);
+apiRouter.use("/dashboard", dashboardRouter);
