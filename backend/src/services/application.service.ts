@@ -17,6 +17,10 @@ export const applicationService = {
     return applicationRepository.findManyByIpo(ipoId);
   },
 
+  listByMember(memberId: number) {
+    return applicationRepository.findManyByMember(memberId);
+  },
+
   async getById(applicationId: number) {
     const application = await applicationRepository.findById(applicationId);
     if (!application) {

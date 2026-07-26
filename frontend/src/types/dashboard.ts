@@ -1,7 +1,7 @@
 import type { IpoStatus } from "./ipo";
-
-export type LedgerType =
-  "MONEY_SENT" | "MONEY_RETURNED" | "PROFIT" | "LOSS" | "COMMISSION" | "ADJUSTMENT";
+// Re-exported for backward compatibility — the canonical definition now lives in ./ledger.
+export type { LedgerType } from "./ledger";
+import type { LedgerType } from "./ledger";
 
 export interface IpoStatusCount {
   status: IpoStatus;

@@ -8,8 +8,11 @@ import {
 } from "../validation/application.validation";
 
 export async function listApplications(req: Request, res: Response): Promise<void> {
-  const { ipoId } = applicationListQuerySchema.parse(req.query);
-  const applications = await applicationService.listByIpo(ipoId);
+  const { ipoId, memberId } = applicationListQuerySchema.parse(req.query);
+  const applications =
+    ipoId !== undefined
+      ? await applicationService.listByIpo(ipoId)
+      : await applicationService.listByMember(memberId!);
   res.json({ data: applications });
 }
 

@@ -1,7 +1,9 @@
 import { useState } from "react";
-import { listApplications } from "../../api/applications";
+import { listApplications, updateAllotment } from "../../api/applications";
+import { ApiError } from "../../api/client";
 import { DataTable } from "../../components/table/DataTable";
 import type { Column } from "../../components/table/DataTable";
+import { EditableCell } from "../../components/table/EditableCell";
 import { Button } from "../../components/ui/Button";
 import { useAsyncData } from "../../hooks/useAsyncData";
 import type { Application } from "../../types/application";
@@ -19,7 +21,9 @@ export function IpoApplicationsTab({ ipo, onApplicationsChanged }: IpoApplicatio
 
   const {
     data: result,
+    setData: setResult,
     error,
+    setError,
     loading,
     refetch,
   } = useAsyncData(() => listApplications(ipo.id), [ipo.id], "Failed to load applications.");
@@ -27,10 +31,32 @@ export function IpoApplicationsTab({ ipo, onApplicationsChanged }: IpoApplicatio
   const canAddApplications = APPLICATION_ACCEPTING_STATUSES.includes(ipo.status);
   const applications = result?.data ?? [];
 
+  const handleAllotmentSave = async (application: Application, shares: string) => {
+    try {
+      const updated = await updateAllotment(application.id, Number(shares));
+      setResult((prev) =>
+        prev ? { data: prev.data.map((a) => (a.id === updated.id ? updated : a)) } : prev,
+      );
+      setError(null);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Failed to update allotment.");
+    }
+  };
+
   const columns: Column<Application>[] = [
-    { key: "member", header: "Member", render: (a) => a.member.name },
+    { key: "member", header: "Member", render: (a) => a.member?.name ?? "—" },
     { key: "lots", header: "Lots", render: (a) => `${a.lots}` },
-    { key: "shares", header: "Shares Allotted", render: (a) => `${a.shares}` },
+    {
+      key: "shares",
+      header: "Shares Allotted",
+      render: (a) => (
+        <EditableCell
+          value={String(a.shares)}
+          type="number"
+          onSave={(v) => handleAllotmentSave(a, v)}
+        />
+      ),
+    },
     { key: "status", header: "Status", render: (a) => a.status },
   ];
 

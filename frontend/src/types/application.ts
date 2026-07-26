@@ -1,3 +1,4 @@
+import type { Ipo } from "./ipo";
 import type { Member } from "./member";
 
 export type ApplicationStatus =
@@ -13,7 +14,10 @@ export interface Application {
   status: ApplicationStatus;
   createdAt: string;
   updatedAt: string;
-  member: Member;
+  /** Present when fetched via GET /applications?ipoId= or by application id. */
+  member?: Member;
+  /** Present when fetched via GET /applications?memberId= or by application id. */
+  ipo?: Ipo;
 }
 
 export interface BulkApplicationItem {

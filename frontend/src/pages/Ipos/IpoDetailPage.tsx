@@ -6,6 +6,7 @@ import { Button } from "../../components/ui/Button";
 import { useAsyncData } from "../../hooks/useAsyncData";
 import type { Ipo, IpoStatus } from "../../types/ipo";
 import { IpoApplicationsTab } from "./IpoApplicationsTab";
+import { IpoSettlementTab } from "./IpoSettlementTab";
 import { IPO_STATUS_BADGE_CLASSES } from "./ipoStatus";
 
 const TABS = ["overview", "applications", "settlement", "timeline"] as const;
@@ -176,11 +177,7 @@ export function IpoDetailPage() {
           <IpoApplicationsTab ipo={ipo} onApplicationsChanged={refetch} />
         ) : null}
 
-        {tab === "settlement" ? (
-          <p className="text-sm text-slate-500">
-            Settlement will be available in a later milestone.
-          </p>
-        ) : null}
+        {tab === "settlement" ? <IpoSettlementTab ipo={ipo} /> : null}
 
         {tab === "timeline" ? (
           <p className="text-sm text-slate-500">Timeline will be available in a later milestone.</p>

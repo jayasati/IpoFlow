@@ -16,6 +16,10 @@ const withMember = {
   member: true,
 } satisfies Prisma.ApplicationInclude;
 
+const withIpo = {
+  ipo: true,
+} satisfies Prisma.ApplicationInclude;
+
 const withDetails = {
   ipo: true,
   member: true,
@@ -28,6 +32,14 @@ export const applicationRepository = {
       where: { ipoId },
       include: withMember,
       orderBy: { member: { name: "asc" } },
+    });
+  },
+
+  findManyByMember(memberId: number) {
+    return prisma.application.findMany({
+      where: { memberId },
+      include: withIpo,
+      orderBy: { createdAt: "desc" },
     });
   },
 

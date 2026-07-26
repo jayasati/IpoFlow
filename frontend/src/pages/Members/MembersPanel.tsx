@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { ApiError } from "../../api/client";
 import { deleteMember, listMembers, updateMember } from "../../api/members";
 import { listGroups } from "../../api/participantGroups";
@@ -17,6 +18,7 @@ type SortField = "name" | "createdAt" | "defaultCommissionRate";
 const PAGE_SIZE = 20;
 
 export function MembersPanel() {
+  const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebounce(search, 300);
   const [groupId, setGroupId] = useState<number | "">("");
@@ -164,13 +166,22 @@ export function MembersPanel() {
       key: "actions",
       header: "",
       render: (m) => (
-        <button
-          type="button"
-          onClick={() => void handleDelete(m)}
-          className="text-xs font-medium text-red-600 hover:text-red-700"
-        >
-          Delete
-        </button>
+        <div className="flex gap-3 text-xs font-medium">
+          <button
+            type="button"
+            onClick={() => navigate(`/members/${m.id}`)}
+            className="text-slate-600 hover:text-slate-900"
+          >
+            View
+          </button>
+          <button
+            type="button"
+            onClick={() => void handleDelete(m)}
+            className="text-red-600 hover:text-red-700"
+          >
+            Delete
+          </button>
+        </div>
       ),
     },
   ];

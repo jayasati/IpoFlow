@@ -12,9 +12,14 @@ export const bulkApplicationSchema = z.object({
     .min(1, "At least one member application is required"),
 });
 
-export const applicationListQuerySchema = z.object({
-  ipoId: z.coerce.number().int().positive(),
-});
+export const applicationListQuerySchema = z
+  .object({
+    ipoId: z.coerce.number().int().positive().optional(),
+    memberId: z.coerce.number().int().positive().optional(),
+  })
+  .refine((data) => data.ipoId !== undefined || data.memberId !== undefined, {
+    message: "Either ipoId or memberId is required",
+  });
 
 export const updateAllotmentSchema = z.object({
   shares: z.coerce.number().int().min(0, "Shares cannot be negative"),
