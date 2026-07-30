@@ -13,11 +13,17 @@ const loginSchema = z.object({
 
 const COOKIE_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 
+// Frontend and backend are on different domains in production (e.g. vercel.app vs
+// onrender.com), so the cookie must be SameSite=None to be sent on cross-site API
+// calls. None requires Secure, which only works over HTTPS -- fine in production,
+// but would silently drop the cookie in local http:// dev, so lax there instead.
+const isProduction = env.nodeEnv === "production";
+
 function setAuthCookie(res: Response, token: string): void {
   res.cookie(AUTH_COOKIE_NAME, token, {
     httpOnly: true,
-    secure: env.nodeEnv === "production",
-    sameSite: "lax",
+    secure: isProduction,
+    sameSite: isProduction ? "none" : "lax",
     maxAge: COOKIE_MAX_AGE_MS,
   });
 }
@@ -38,7 +44,11 @@ export async function login(req: Request, res: Response): Promise<void> {
 }
 
 export function logout(_req: Request, res: Response): void {
-  res.clearCookie(AUTH_COOKIE_NAME);
+  res.clearCookie(AUTH_COOKIE_NAME, {
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: isProduction ? "none" : "lax",
+  });
   res.status(204).send();
 }
 
