@@ -62,7 +62,7 @@ export function IpoApplicationsTab({ ipo, onApplicationsChanged }: IpoApplicatio
 
   return (
     <div>
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm text-slate-500">
           {applications.length} application{applications.length === 1 ? "" : "s"}
         </p>

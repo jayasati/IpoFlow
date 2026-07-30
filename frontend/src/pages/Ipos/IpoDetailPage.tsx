@@ -118,8 +118,8 @@ export function IpoDetailPage() {
         ← Back to IPOs
       </button>
 
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <h1 className="text-2xl font-semibold">{ipo.company}</h1>
           <span
             className={`rounded-full px-2 py-0.5 text-xs font-medium ${IPO_STATUS_BADGE_CLASSES[ipo.status]}`}
@@ -182,13 +182,13 @@ export function IpoDetailPage() {
         </div>
       ) : null}
 
-      <div className="mt-4 flex gap-2 border-b border-slate-200">
+      <div className="mt-4 flex gap-2 overflow-x-auto border-b border-slate-200">
         {TABS.map((t) => (
           <button
             key={t}
             type="button"
             onClick={() => setTab(t)}
-            className={`border-b-2 px-3 py-2 text-sm font-medium ${
+            className={`shrink-0 border-b-2 px-3 py-2 text-sm font-medium ${
               tab === t
                 ? "border-slate-900 text-slate-900"
                 : "border-transparent text-slate-500 hover:text-slate-700"
@@ -201,7 +201,7 @@ export function IpoDetailPage() {
 
       <div className="mt-4">
         {tab === "overview" ? (
-          <div className="grid max-w-xl grid-cols-2 gap-4 rounded-lg border border-slate-200 bg-white p-4 text-sm">
+          <div className="grid max-w-xl grid-cols-1 gap-4 rounded-lg border border-slate-200 bg-white p-4 text-sm sm:grid-cols-2">
             <div>
               <p className="text-slate-500">Issue Price</p>
               <p className="font-medium text-slate-900">{ipo.issuePrice}</p>
@@ -225,7 +225,7 @@ export function IpoDetailPage() {
               {ipo.allowedNextStatuses.length === 0 ? (
                 <p className="text-slate-400">Final status — no further transitions.</p>
               ) : (
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
                   {ipo.allowedNextStatuses.map((next) => (
                     <Button
                       key={next}

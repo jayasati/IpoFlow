@@ -227,7 +227,7 @@ export function MembersPanel() {
         />
       </div>
 
-      <div className="mt-3 flex items-center justify-between text-sm text-slate-500">
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-sm text-slate-500">
         <span>
           Page {result?.page ?? 1} of {result?.totalPages ?? 1} ({result?.total ?? 0} members)
         </span>

@@ -179,7 +179,7 @@ export function IposPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-semibold">IPOs</h1>
         <Button onClick={() => setWizardOpen(true)}>New IPO</Button>
       </div>
@@ -220,7 +220,7 @@ export function IposPage() {
         />
       </div>
 
-      <div className="mt-3 flex items-center justify-between text-sm text-slate-500">
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-sm text-slate-500">
         <span>
           Page {result?.page ?? 1} of {result?.totalPages ?? 1} ({result?.total ?? 0} IPOs)
         </span>

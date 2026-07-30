@@ -14,8 +14,8 @@ export function Modal({ open, title, onClose, children }: ModalProps) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="w-full max-w-lg rounded-lg bg-white p-5 shadow-lg">
-        <div className="mb-4 flex items-center justify-between">
+      <div className="flex max-h-[90vh] w-full max-w-lg flex-col rounded-lg bg-white p-5 shadow-lg">
+        <div className="mb-4 flex shrink-0 items-center justify-between">
           <h2 className="text-lg font-semibold text-slate-900">{title}</h2>
           <button
             type="button"
@@ -26,7 +26,7 @@ export function Modal({ open, title, onClose, children }: ModalProps) {
             ✕
           </button>
         </div>
-        {children}
+        <div className="overflow-y-auto">{children}</div>
       </div>
     </div>
   );

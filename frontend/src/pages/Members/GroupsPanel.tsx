@@ -94,7 +94,7 @@ export function GroupsPanel() {
 
   return (
     <div>
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm text-slate-500">
           Groups let you quickly load a default set of members when creating a new IPO.
         </p>
