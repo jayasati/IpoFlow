@@ -1,4 +1,5 @@
 import { NavLink, Outlet } from "react-router-dom";
+import { useAuth } from "../../features/auth/AuthContext";
 
 const navItems = [
   { to: "/dashboard", label: "Dashboard" },
@@ -7,9 +8,11 @@ const navItems = [
 ];
 
 export function AppShell() {
+  const { username, logout } = useAuth();
+
   return (
     <div className="flex min-h-screen bg-slate-50 text-slate-900">
-      <aside className="w-56 shrink-0 border-r border-slate-200 bg-white">
+      <aside className="flex w-56 shrink-0 flex-col border-r border-slate-200 bg-white">
         <div className="px-4 py-5 text-lg font-semibold">IPOFlow</div>
         <nav className="flex flex-col gap-1 px-2">
           {navItems.map((item) => (
@@ -26,6 +29,16 @@ export function AppShell() {
             </NavLink>
           ))}
         </nav>
+        <div className="mt-auto border-t border-slate-200 px-4 py-3">
+          <div className="text-xs text-slate-500">Signed in as {username}</div>
+          <button
+            type="button"
+            onClick={() => logout()}
+            className="mt-1 text-sm font-medium text-slate-600 hover:text-slate-900"
+          >
+            Sign out
+          </button>
+        </div>
       </aside>
       <main className="flex-1 overflow-y-auto p-6">
         <Outlet />

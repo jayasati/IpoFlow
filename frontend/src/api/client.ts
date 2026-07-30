@@ -33,13 +33,16 @@ async function handleResponse<T>(response: Response): Promise<T> {
 }
 
 export function apiGet<T>(path: string): Promise<T> {
-  return fetch(`${API_BASE_URL}${path}`).then((res) => handleResponse<T>(res));
+  return fetch(`${API_BASE_URL}${path}`, { credentials: "include" }).then((res) =>
+    handleResponse<T>(res),
+  );
 }
 
 export function apiPost<T>(path: string, data?: unknown): Promise<T> {
   return fetch(`${API_BASE_URL}${path}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
+    credentials: "include",
     body: data === undefined ? undefined : JSON.stringify(data),
   }).then((res) => handleResponse<T>(res));
 }
@@ -48,12 +51,13 @@ export function apiPut<T>(path: string, data?: unknown): Promise<T> {
   return fetch(`${API_BASE_URL}${path}`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
+    credentials: "include",
     body: data === undefined ? undefined : JSON.stringify(data),
   }).then((res) => handleResponse<T>(res));
 }
 
 export function apiDelete<T = void>(path: string): Promise<T> {
-  return fetch(`${API_BASE_URL}${path}`, { method: "DELETE" }).then((res) =>
-    handleResponse<T>(res),
+  return fetch(`${API_BASE_URL}${path}`, { method: "DELETE", credentials: "include" }).then(
+    (res) => handleResponse<T>(res),
   );
 }
