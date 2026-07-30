@@ -1,2 +1,2 @@
 -- AlterTable
-ALTER TABLE `sale` ADD COLUMN `netAmount` DECIMAL(12, 2) NULL;
+ALTER TABLE `Sale` ADD COLUMN `netAmount` DECIMAL(12, 2) NULL;
