@@ -39,6 +39,11 @@ export const ipoService = {
     return ipoRepository.delete(id);
   },
 
+  async removeWithTransactions(id: number) {
+    await this.getById(id);
+    return ipoRepository.deleteWithTransactions(id);
+  },
+
   async updateStatus(id: number, nextStatus: IpoStatus) {
     const ipo = await this.getById(id);
     assertValidTransition(ipo.status, nextStatus);

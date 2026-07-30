@@ -4,6 +4,7 @@ import type { ApplicationStatus } from "../generated/prisma/client";
 export interface CreateSaleData {
   shares: number;
   sellPrice: number;
+  netAmount?: number;
 }
 
 export const saleRepository = {
@@ -26,7 +27,12 @@ export const saleRepository = {
   ) {
     return prisma.$transaction(async (tx) => {
       const sale = await tx.sale.create({
-        data: { applicationId, shares: data.shares, sellPrice: data.sellPrice },
+        data: {
+          applicationId,
+          shares: data.shares,
+          sellPrice: data.sellPrice,
+          netAmount: data.netAmount,
+        },
       });
       const application = await tx.application.update({
         where: { id: applicationId },

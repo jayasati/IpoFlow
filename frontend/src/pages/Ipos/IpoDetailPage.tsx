@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { ApiError } from "../../api/client";
-import { cloneIpo, deleteIpo, getIpo, updateIpoStatus } from "../../api/ipos";
+import { cloneIpo, deleteIpo, getIpo, revertAndDeleteIpo, updateIpoStatus } from "../../api/ipos";
 import { Button } from "../../components/ui/Button";
 import { useAsyncData } from "../../hooks/useAsyncData";
 import type { Ipo, IpoStatus } from "../../types/ipo";
@@ -26,6 +26,9 @@ export function IpoDetailPage() {
   const [tab, setTab] = useState<Tab>("overview");
   const [actionError, setActionError] = useState<string | null>(null);
   const [transitioning, setTransitioning] = useState(false);
+  const [blockedByReferences, setBlockedByReferences] = useState(false);
+  const [revertConfirmText, setRevertConfirmText] = useState("");
+  const [reverting, setReverting] = useState(false);
 
   const {
     data: ipo,
@@ -62,11 +65,34 @@ export function IpoDetailPage() {
   const handleDelete = async () => {
     if (!ipo) return;
     if (!confirm(`Delete IPO "${ipo.company}"? This cannot be undone.`)) return;
+    setBlockedByReferences(false);
     try {
       await deleteIpo(ipo.id);
       navigate("/ipos");
     } catch (err) {
-      setActionError(err instanceof ApiError ? err.message : "Failed to delete IPO.");
+      if (err instanceof ApiError) {
+        setActionError(err.message);
+        if (err.status === 409) {
+          setBlockedByReferences(true);
+        }
+      } else {
+        setActionError("Failed to delete IPO.");
+      }
+    }
+  };
+
+  const handleRevertAndDelete = async () => {
+    if (!ipo || revertConfirmText !== ipo.company) return;
+    setReverting(true);
+    setActionError(null);
+    try {
+      await revertAndDeleteIpo(ipo.id);
+      navigate("/ipos");
+    } catch (err) {
+      setActionError(
+        err instanceof ApiError ? err.message : "Failed to revert transactions and delete IPO.",
+      );
+      setReverting(false);
     }
   };
 
@@ -112,6 +138,49 @@ export function IpoDetailPage() {
       </div>
 
       {actionError ? <p className="mt-2 text-sm text-red-600">{actionError}</p> : null}
+
+      {blockedByReferences ? (
+        <div className="mt-3 max-w-xl rounded-lg border border-red-200 bg-red-50 p-4 text-sm">
+          <p className="font-medium text-red-800">
+            This IPO has applications and possibly recorded transactions (money sent/returned,
+            sales, settlements) tied to it.
+          </p>
+          <p className="mt-1 text-red-700">
+            To delete it anyway, you can revert everything first: this will permanently delete all
+            ledger entries, sales, and applications linked to this IPO, then delete the IPO
+            itself. This cannot be undone.
+          </p>
+          <label className="mt-3 block text-red-800">
+            Type <span className="font-semibold">{ipo.company}</span> to confirm:
+          </label>
+          <input
+            type="text"
+            value={revertConfirmText}
+            onChange={(e) => setRevertConfirmText(e.target.value)}
+            className="mt-1 w-full rounded-md border border-red-300 px-2 py-1 text-slate-900"
+            placeholder={ipo.company}
+          />
+          <div className="mt-3 flex gap-2">
+            <Button
+              variant="danger"
+              disabled={revertConfirmText !== ipo.company || reverting}
+              onClick={() => void handleRevertAndDelete()}
+            >
+              {reverting ? "Reverting…" : "Revert All Transactions & Delete"}
+            </Button>
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setBlockedByReferences(false);
+                setRevertConfirmText("");
+                setActionError(null);
+              }}
+            >
+              Cancel
+            </Button>
+          </div>
+        </div>
+      ) : null}
 
       <div className="mt-4 flex gap-2 border-b border-slate-200">
         {TABS.map((t) => (

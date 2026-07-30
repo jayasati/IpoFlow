@@ -65,6 +65,17 @@ export const ipoRepository = {
     return prisma.ipo.delete({ where: { id } });
   },
 
+  /** Deletes the IPO along with every Ledger entry, Sale, and Application tied to it,
+   * so it can be removed even after money movement or sales have been recorded. */
+  deleteWithTransactions(id: number) {
+    return prisma.$transaction(async (tx) => {
+      await tx.ledger.deleteMany({ where: { ipoId: id } });
+      await tx.sale.deleteMany({ where: { application: { ipoId: id } } });
+      await tx.application.deleteMany({ where: { ipoId: id } });
+      await tx.ipo.delete({ where: { id } });
+    });
+  },
+
   /** One query, grouped by status - serves both the "Active IPOs" count and the
    * status breakdown chart, avoiding a separate count() call. */
   async countByStatus(): Promise<IpoStatusCount[]> {

@@ -5,6 +5,7 @@ import {
   deleteIpo,
   getIpo,
   listIpos,
+  revertAndDeleteIpo,
   updateIpo,
   updateIpoStatus,
 } from "../controllers/ipo.controller";
@@ -16,5 +17,6 @@ ipoRouter.post("/", createIpo);
 ipoRouter.get("/:id", getIpo);
 ipoRouter.put("/:id", updateIpo);
 ipoRouter.delete("/:id", deleteIpo);
+ipoRouter.post("/:id/revert-and-delete", revertAndDeleteIpo);
 ipoRouter.put("/:id/status", updateIpoStatus);
 ipoRouter.post("/:id/clone", cloneIpo);

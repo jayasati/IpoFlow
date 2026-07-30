@@ -20,6 +20,7 @@ export function RecordSaleModal({
 }: RecordSaleModalProps) {
   const [shares, setShares] = useState("");
   const [sellPrice, setSellPrice] = useState("");
+  const [netAmount, setNetAmount] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -27,6 +28,7 @@ export function RecordSaleModal({
     if (open) {
       setShares("");
       setSellPrice("");
+      setNetAmount("");
       setError(null);
     }
   }, [open]);
@@ -36,7 +38,11 @@ export function RecordSaleModal({
     setSubmitting(true);
     setError(null);
     try {
-      await createSale(applicationId, { shares: Number(shares), sellPrice: Number(sellPrice) });
+      await createSale(applicationId, {
+        shares: Number(shares),
+        sellPrice: Number(sellPrice),
+        netAmount: netAmount ? Number(netAmount) : undefined,
+      });
       onRecorded();
       onClose();
     } catch (err) {
@@ -73,6 +79,22 @@ export function RecordSaleModal({
             required
             className="mt-1 w-full"
           />
+        </label>
+        <label className="text-sm font-medium text-slate-700">
+          Net amount received (optional)
+          <TextInput
+            type="number"
+            min={0.01}
+            step="0.01"
+            value={netAmount}
+            onChange={(event) => setNetAmount(event.target.value)}
+            placeholder="Leave blank to use shares × sell price"
+            className="mt-1 w-full"
+          />
+          <span className="mt-1 block text-xs font-normal text-slate-400">
+            If the actual amount credited differs from shares × sell price (taxes, STT, brokerage,
+            etc.), enter it here — it will be used as this tranche&apos;s proceeds instead.
+          </span>
         </label>
         <div className="mt-2 flex justify-end gap-2">
           <Button type="button" variant="secondary" onClick={onClose}>

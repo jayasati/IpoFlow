@@ -47,6 +47,12 @@ export async function deleteIpo(req: Request, res: Response): Promise<void> {
   res.status(204).send();
 }
 
+export async function revertAndDeleteIpo(req: Request, res: Response): Promise<void> {
+  const { id } = idParamSchema.parse(req.params);
+  await ipoService.removeWithTransactions(id);
+  res.status(204).send();
+}
+
 export async function updateIpoStatus(req: Request, res: Response): Promise<void> {
   const { id } = idParamSchema.parse(req.params);
   const { status } = ipoStatusUpdateSchema.parse(req.body);

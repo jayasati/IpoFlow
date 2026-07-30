@@ -33,3 +33,10 @@ export async function recordMoneyReturned(req: Request, res: Response): Promise<
   const entry = await ledgerService.recordMoneyReturned(id, input);
   res.status(201).json(entry);
 }
+
+export async function recordCommission(req: Request, res: Response): Promise<void> {
+  const { id } = idParamSchema.parse(req.params);
+  const input = recordMoneyMovementSchema.parse(req.body);
+  const entry = await ledgerService.recordCommission(id, input);
+  res.status(201).json(entry);
+}

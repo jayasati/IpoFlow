@@ -13,7 +13,6 @@ export interface ApplySettlementParams {
   applicationId: number;
   memberId: number;
   ipoId: number;
-  commissionRate: Prisma.Decimal;
   entries: SettlementLedgerEntryInput[];
 }
 
@@ -37,7 +36,7 @@ export const settlementRepository = {
 
       const application = await tx.application.update({
         where: { id: params.applicationId },
-        data: { commissionRate: params.commissionRate, status: ApplicationStatus.SETTLED },
+        data: { status: ApplicationStatus.SETTLED },
         include: { member: true },
       });
 

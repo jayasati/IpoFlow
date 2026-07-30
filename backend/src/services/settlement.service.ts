@@ -21,10 +21,15 @@ export const settlementService = {
     const result = calculateSettlement({
       sharesAllotted: application.shares,
       issuePrice: application.ipo.issuePrice,
-      sales: application.sales.map((sale) => ({ shares: sale.shares, sellPrice: sale.sellPrice })),
-      commissionRate: application.member.defaultCommissionRate,
+      sales: application.sales.map((sale) => ({
+        shares: sale.shares,
+        sellPrice: sale.sellPrice,
+        netAmount: sale.netAmount,
+      })),
     });
 
+    // Commission is recorded manually per member (see ledgerService.recordCommission),
+    // not computed here — the operator decides the amount and pays it at their discretion.
     const entries: SettlementLedgerEntryInput[] = [];
     if (!result.profitOrLoss.isZero()) {
       entries.push({
@@ -34,20 +39,11 @@ export const settlementService = {
         description: `${result.isProfit ? "Profit" : "Loss"} on ${application.ipo.company} (application #${application.id})`,
       });
     }
-    if (result.commission.greaterThan(0)) {
-      entries.push({
-        type: LedgerType.COMMISSION,
-        credit: 0,
-        debit: result.commission,
-        description: `Commission on ${application.ipo.company} (application #${application.id})`,
-      });
-    }
 
     const { application: updated, ledgerEntries } = await settlementRepository.applySettlement({
       applicationId: application.id,
       memberId: application.memberId,
       ipoId: application.ipoId,
-      commissionRate: application.member.defaultCommissionRate,
       entries,
     });
 
@@ -58,7 +54,6 @@ export const settlementService = {
       costBasis: result.costBasis,
       profitOrLoss: result.profitOrLoss,
       isProfit: result.isProfit,
-      commission: result.commission,
     };
   },
 };

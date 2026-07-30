@@ -40,4 +40,17 @@ export const ledgerService = {
       description: input.description,
     });
   },
+
+  /** Commission is paid at the operator's discretion, not auto-computed from profit. */
+  async recordCommission(memberId: number, input: RecordMoneyMovementInput) {
+    await memberService.getById(memberId);
+    return ledgerRepository.create({
+      member: { connect: { id: memberId } },
+      ipo: input.ipoId ? { connect: { id: input.ipoId } } : undefined,
+      type: LedgerType.COMMISSION,
+      credit: 0,
+      debit: input.amount,
+      description: input.description,
+    });
+  },
 };

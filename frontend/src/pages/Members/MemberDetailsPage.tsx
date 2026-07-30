@@ -17,7 +17,7 @@ export function MemberDetailsPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const memberId = Number(id);
-  const [movementType, setMovementType] = useState<"sent" | "returned" | null>(null);
+  const [movementType, setMovementType] = useState<"sent" | "returned" | "commission" | null>(null);
 
   const {
     data: member,
@@ -93,6 +93,9 @@ export function MemberDetailsPage() {
           </Button>
           <Button variant="secondary" onClick={() => setMovementType("returned")}>
             Record Money Returned
+          </Button>
+          <Button variant="secondary" onClick={() => setMovementType("commission")}>
+            Record Commission
           </Button>
         </div>
       </div>

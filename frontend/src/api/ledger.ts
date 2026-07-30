@@ -27,3 +27,10 @@ export function recordMoneyReturned(
 ): Promise<LedgerEntry> {
   return apiPost(`/members/${memberId}/ledger/money-returned`, input);
 }
+
+export function recordCommission(
+  memberId: number,
+  input: RecordMoneyMovementInput,
+): Promise<LedgerEntry> {
+  return apiPost(`/members/${memberId}/ledger/commission`, input);
+}

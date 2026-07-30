@@ -1,14 +1,22 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { ApiError } from "../../api/client";
-import { recordMoneyReturned, recordMoneySent } from "../../api/ledger";
+import { recordCommission, recordMoneyReturned, recordMoneySent } from "../../api/ledger";
 import { Button } from "../../components/ui/Button";
 import { Modal } from "../../components/ui/Modal";
 import { TextInput } from "../../components/ui/TextInput";
 
+type MovementType = "sent" | "returned" | "commission";
+
+const TITLES: Record<MovementType, string> = {
+  sent: "Record Money Sent",
+  returned: "Record Money Returned",
+  commission: "Record Commission",
+};
+
 interface MoneyMovementModalProps {
   open: boolean;
   memberId: number;
-  type: "sent" | "returned";
+  type: MovementType;
   onClose: () => void;
   onRecorded: () => void;
 }
@@ -41,8 +49,10 @@ export function MoneyMovementModal({
       const input = { amount: Number(amount), description: description || undefined };
       if (type === "sent") {
         await recordMoneySent(memberId, input);
-      } else {
+      } else if (type === "returned") {
         await recordMoneyReturned(memberId, input);
+      } else {
+        await recordCommission(memberId, input);
       }
       onRecorded();
       onClose();
@@ -54,11 +64,7 @@ export function MoneyMovementModal({
   };
 
   return (
-    <Modal
-      open={open}
-      title={type === "sent" ? "Record Money Sent" : "Record Money Returned"}
-      onClose={onClose}
-    >
+    <Modal open={open} title={TITLES[type]} onClose={onClose}>
       <form onSubmit={(event) => void handleSubmit(event)} className="flex flex-col gap-3">
         {error ? <p className="text-sm text-red-600">{error}</p> : null}
         <label className="text-sm font-medium text-slate-700">

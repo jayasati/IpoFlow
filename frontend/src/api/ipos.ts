@@ -41,3 +41,7 @@ export function updateIpoStatus(id: number, status: IpoStatus): Promise<Ipo> {
 export function cloneIpo(id: number): Promise<Ipo> {
   return apiPost(`/ipos/${id}/clone`);
 }
+
+export function revertAndDeleteIpo(id: number): Promise<void> {
+  return apiPost(`/ipos/${id}/revert-and-delete`);
+}

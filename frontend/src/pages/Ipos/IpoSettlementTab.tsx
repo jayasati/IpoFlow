@@ -38,7 +38,7 @@ export function IpoSettlementTab({ ipo }: IpoSettlementTabProps) {
       const outcome = await createSettlement(application.id);
       const name = application.member?.name ?? "Member";
       setMessage(
-        `${name}: ${outcome.isProfit ? "Profit" : "Loss"} ${formatCurrency(outcome.profitOrLoss)}, commission ${formatCurrency(outcome.commission)}.`,
+        `${name}: ${outcome.isProfit ? "Profit" : "Loss"} ${formatCurrency(outcome.profitOrLoss)}.`,
       );
       refetch();
     } catch (err) {

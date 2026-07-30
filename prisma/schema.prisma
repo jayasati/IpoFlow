@@ -76,6 +76,9 @@ model Sale {
   applicationId Int
   shares        Int
   sellPrice     Decimal  @db.Decimal(12, 2)
+  /// Actual amount credited after taxes/charges (STT, brokerage, GST, etc.).
+  /// Overrides shares * sellPrice as the proceeds for this tranche when present.
+  netAmount     Decimal? @db.Decimal(12, 2)
   soldAt        DateTime @default(now())
   createdAt     DateTime @default(now())
 

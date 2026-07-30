@@ -9,7 +9,6 @@ export interface SettlementOutcome {
   costBasis: string;
   profitOrLoss: string;
   isProfit: boolean;
-  commission: string;
 }
 
 export function createSettlement(applicationId: number): Promise<SettlementOutcome> {
