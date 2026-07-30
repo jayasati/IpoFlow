@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 import { AppShell } from "./components/layout/AppShell";
 import { RequireAuth } from "./features/auth/RequireAuth";
+import { AnalysisPage } from "./pages/Analysis/AnalysisPage";
 import { DashboardPage } from "./pages/Dashboard/DashboardPage";
 import { IpoDetailPage } from "./pages/Ipos/IpoDetailPage";
 import { IposPage } from "./pages/Ipos/IposPage";
@@ -20,6 +21,7 @@ function App() {
           <Route path="/members/:id" element={<MemberDetailsPage />} />
           <Route path="/ipos" element={<IposPage />} />
           <Route path="/ipos/:id" element={<IpoDetailPage />} />
+          <Route path="/analysis" element={<AnalysisPage />} />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Route>
       </Route>

@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { analysisRouter } from "./analysis.routes";
 import { applicationRouter } from "./application.routes";
 import { dashboardRouter } from "./dashboard.routes";
 import { ipoRouter } from "./ipo.routes";
@@ -14,3 +15,4 @@ apiRouter.use("/ipos", ipoRouter);
 apiRouter.use("/applications", applicationRouter);
 apiRouter.use("/settlement", settlementRouter);
 apiRouter.use("/dashboard", dashboardRouter);
+apiRouter.use("/analysis", analysisRouter);
