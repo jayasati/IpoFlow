@@ -22,15 +22,6 @@ export interface AnalysisOperatorTransaction {
   createdAt: Date;
 }
 
-/** A SELF-funded settled application's memberProfitOrLoss — the member's own
- * trading profit/loss, already net of the operator's cut/compensation, never
- * posted to the Ledger. */
-export interface AnalysisSelfFundedProfit {
-  memberId: number;
-  memberName: string;
-  memberProfitOrLoss: Prisma.Decimal;
-}
-
 export interface MonthlyAnalysis {
   month: string;
   cashIn: Prisma.Decimal;
@@ -77,11 +68,11 @@ export interface MemberAnalysis {
   commission: Prisma.Decimal;
   /** Wallet-affecting net (Profit - Loss - Commission from the Ledger only). */
   netIncome: Prisma.Decimal;
-  /** This member's own profit/loss on SELF-funded trades — never touches their wallet. */
-  selfFundedProfit: Prisma.Decimal;
   /** What the operator earned (or paid out) from this member's SELF-funded deals. */
   yourCut: Prisma.Decimal;
-  /** The member's total profit after commission, across both funding types: netIncome + selfFundedProfit. */
+  /** The operator's total profit from this member after commission, across both funding
+   * types: netIncome (pooled-capital) + yourCut (self-funded). Not the member's own
+   * trading profit -- see the member's own page for that. */
   totalProfit: Prisma.Decimal;
   /** Credits - debits across every ledger entry for this member. */
   walletBalance: Prisma.Decimal;
@@ -243,7 +234,6 @@ export function calculateIpoAnalysis(
 export function calculateMemberAnalysis(
   entries: AnalysisLedgerEntry[],
   operatorTransactions: AnalysisOperatorTransaction[],
-  selfFundedProfits: AnalysisSelfFundedProfit[],
   now: Date,
 ): MemberAnalysis[] {
   const buckets = new Map<
@@ -275,20 +265,7 @@ export function calculateMemberAnalysis(
     namesByMember.set(tx.memberId, tx.memberName);
   }
 
-  const selfFundedProfitByMember = new Map<number, Prisma.Decimal>();
-  for (const p of selfFundedProfits) {
-    selfFundedProfitByMember.set(
-      p.memberId,
-      (selfFundedProfitByMember.get(p.memberId) ?? zero()).plus(p.memberProfitOrLoss),
-    );
-    namesByMember.set(p.memberId, p.memberName);
-  }
-
-  const memberIds = new Set([
-    ...buckets.keys(),
-    ...yourCutByMember.keys(),
-    ...selfFundedProfitByMember.keys(),
-  ]);
+  const memberIds = new Set([...buckets.keys(), ...yourCutByMember.keys()]);
 
   return [...memberIds]
     .map((memberId) => {
@@ -300,7 +277,7 @@ export function calculateMemberAnalysis(
         (now.getTime() - lastActivityAt.getTime()) / (1000 * 60 * 60 * 24),
       );
       const netIncome = ledgerNetIncome(bucket);
-      const selfFundedProfit = selfFundedProfitByMember.get(memberId) ?? zero();
+      const yourCut = yourCutByMember.get(memberId) ?? zero();
       return {
         memberId,
         name: record?.name ?? namesByMember.get(memberId) ?? "Unknown",
@@ -310,9 +287,8 @@ export function calculateMemberAnalysis(
         loss: bucket.loss,
         commission: bucket.commission,
         netIncome,
-        selfFundedProfit,
-        yourCut: yourCutByMember.get(memberId) ?? zero(),
-        totalProfit: netIncome.plus(selfFundedProfit),
+        yourCut,
+        totalProfit: netIncome.plus(yourCut),
         walletBalance,
         lastActivityAt,
         outstandingDays: walletBalance.isZero() ? 0 : outstandingDays,

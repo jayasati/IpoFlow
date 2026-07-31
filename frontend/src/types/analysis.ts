@@ -35,11 +35,11 @@ export interface MemberAnalysis {
   commission: string;
   /** Wallet-affecting net (Profit - Loss - Commission from the Ledger only). */
   netIncome: string;
-  /** This member's own profit/loss on self-funded trades — never touches their wallet. */
-  selfFundedProfit: string;
   /** What you earned (or paid out) from this member's self-funded deals. */
   yourCut: string;
-  /** The member's total profit after commission, across both funding types. */
+  /** Your total profit from this member after commission, across both funding types:
+   * netIncome (pooled-capital) + yourCut (self-funded). Not the member's own trading
+   * profit — see the member's own page for that. */
   totalProfit: string;
   walletBalance: string;
   lastActivityAt: string;

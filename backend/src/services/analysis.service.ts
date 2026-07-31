@@ -9,18 +9,15 @@ import type {
   AnalysisApplicationInput,
   AnalysisLedgerEntry,
   AnalysisOperatorTransaction,
-  AnalysisSelfFundedProfit,
 } from "./analysisCalculator";
 
 export const analysisService = {
   async getSummary() {
-    const [ledgerRows, applicationRows, operatorTransactionRows, selfFundedRows] =
-      await Promise.all([
-        analysisRepository.findAllLedgerEntries(),
-        analysisRepository.findAllottedApplications(),
-        analysisRepository.findAllOperatorTransactions(),
-        analysisRepository.findAllSelfFundedSettledApplications(),
-      ]);
+    const [ledgerRows, applicationRows, operatorTransactionRows] = await Promise.all([
+      analysisRepository.findAllLedgerEntries(),
+      analysisRepository.findAllottedApplications(),
+      analysisRepository.findAllOperatorTransactions(),
+    ]);
 
     const entries: AnalysisLedgerEntry[] = ledgerRows.map((row) => ({
       type: row.type,
@@ -51,22 +48,9 @@ export const analysisService = {
       }),
     );
 
-    const selfFundedProfits: AnalysisSelfFundedProfit[] = selfFundedRows
-      .filter((row) => row.memberProfitOrLoss !== null)
-      .map((row) => ({
-        memberId: row.memberId,
-        memberName: row.member.name,
-        memberProfitOrLoss: row.memberProfitOrLoss!,
-      }));
-
     const monthly = calculateMonthlyAnalysis(entries, operatorTransactions);
     const ipos = calculateIpoAnalysis(entries, applications, operatorTransactions);
-    const members = calculateMemberAnalysis(
-      entries,
-      operatorTransactions,
-      selfFundedProfits,
-      new Date(),
-    );
+    const members = calculateMemberAnalysis(entries, operatorTransactions, new Date());
     const averages = calculateAverages(monthly);
 
     return { monthly, ipos, members, ...averages };

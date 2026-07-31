@@ -11,7 +11,6 @@ import type {
   AnalysisApplicationInput,
   AnalysisLedgerEntry,
   AnalysisOperatorTransaction,
-  AnalysisSelfFundedProfit,
 } from "./analysisCalculator";
 
 function entry(overrides: Partial<AnalysisLedgerEntry>): AnalysisLedgerEntry {
@@ -190,7 +189,7 @@ test("calculateMemberAnalysis computes wallet balance and outstanding aging, sor
     }),
   ];
 
-  const result = calculateMemberAnalysis(entries, [], [], now);
+  const result = calculateMemberAnalysis(entries, [], now);
 
   assert.equal(result.length, 2);
   assert.equal(result[0].name, "Asha");
@@ -205,26 +204,46 @@ test("calculateMemberAnalysis computes wallet balance and outstanding aging, sor
   assert.equal(rohit.outstandingDays, 0);
 });
 
-test("calculateMemberAnalysis surfaces a self-funded member with zero ledger entries — their own profit, the operator's cut, and totalProfit all resolve correctly, wallet stays zero", () => {
+test("calculateMemberAnalysis shows the operator's own cut as this member's profit, not the member's own trading profit", () => {
   const now = new Date("2026-08-01T00:00:00Z");
   const operatorTransactions = [
     operatorTx({ memberId: 24, memberName: "Nakul Rathod", credit: new Prisma.Decimal(4400) }),
   ];
-  const selfFundedProfits: AnalysisSelfFundedProfit[] = [
-    { memberId: 24, memberName: "Nakul Rathod", memberProfitOrLoss: new Prisma.Decimal(2050) },
-  ];
 
-  const result = calculateMemberAnalysis([], operatorTransactions, selfFundedProfits, now);
+  const result = calculateMemberAnalysis([], operatorTransactions, now);
 
   assert.equal(result.length, 1);
   const nakul = result[0];
   assert.equal(nakul.name, "Nakul Rathod");
   assert.equal(nakul.netIncome.toString(), "0");
-  assert.equal(nakul.selfFundedProfit.toString(), "2050");
   assert.equal(nakul.yourCut.toString(), "4400");
-  assert.equal(nakul.totalProfit.toString(), "2050");
+  // Total profit is the operator's earnings from this member (4400), not the
+  // member's own 2050 trading profit -- that lives on the member's own page.
+  assert.equal(nakul.totalProfit.toString(), "4400");
   assert.equal(nakul.walletBalance.toString(), "0");
   assert.equal(nakul.outstandingDays, 0);
+});
+
+test("calculateMemberAnalysis nets a loss compensation (debit) against pooled-capital income for the same member", () => {
+  const now = new Date("2026-08-01T00:00:00Z");
+  const entries = [
+    entry({
+      memberId: 3,
+      memberName: "Priya",
+      type: LedgerType.PROFIT,
+      credit: new Prisma.Decimal(1000),
+    }),
+  ];
+  const operatorTransactions = [
+    operatorTx({ memberId: 3, memberName: "Priya", debit: new Prisma.Decimal(300) }),
+  ];
+
+  const result = calculateMemberAnalysis(entries, operatorTransactions, now);
+
+  assert.equal(result.length, 1);
+  assert.equal(result[0].netIncome.toString(), "1000");
+  assert.equal(result[0].yourCut.toString(), "-300");
+  assert.equal(result[0].totalProfit.toString(), "700");
 });
 
 test("calculateAverages divides monthly totals by the number of months present", () => {

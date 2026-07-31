@@ -149,8 +149,8 @@ export function AnalysisPage() {
       <div className="mt-6">
         <h2 className="text-sm font-semibold text-slate-700">Member profitability</h2>
         <p className="mt-0.5 text-xs text-slate-400">
-          Total profit after commission, across both pooled-capital and self-funded deals. "Your
-          cut" is what you personally earned from that member's self-funded trades.
+          Your total profit from each member after commission — combining pooled-capital income
+          and self-funded cuts. Not the member's own trading profit; see their own page for that.
         </p>
         <div className="mt-2">
           <DataTable

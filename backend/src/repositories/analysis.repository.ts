@@ -37,14 +37,4 @@ export const analysisRepository = {
       include: { member: { select: { name: true } } },
     });
   },
-
-  /** SELF-funded settled applications — memberProfitOrLoss is the member's own
-   * trading profit/loss (already net of the operator's cut/compensation), never
-   * posted to the Ledger, so it's invisible to analysis unless fetched here. */
-  findAllSelfFundedSettledApplications() {
-    return prisma.application.findMany({
-      where: { fundingSource: "SELF", status: "SETTLED" },
-      select: { memberId: true, memberProfitOrLoss: true, member: { select: { name: true } } },
-    });
-  },
 };
