@@ -5,14 +5,22 @@ import {
   calculateMemberAnalysis,
   calculateMonthlyAnalysis,
 } from "./analysisCalculator";
-import type { AnalysisApplicationInput, AnalysisLedgerEntry } from "./analysisCalculator";
+import type {
+  AnalysisApplicationInput,
+  AnalysisLedgerEntry,
+  AnalysisOperatorTransaction,
+  AnalysisSelfFundedProfit,
+} from "./analysisCalculator";
 
 export const analysisService = {
   async getSummary() {
-    const [ledgerRows, applicationRows] = await Promise.all([
-      analysisRepository.findAllLedgerEntries(),
-      analysisRepository.findAllottedApplications(),
-    ]);
+    const [ledgerRows, applicationRows, operatorTransactionRows, selfFundedRows] =
+      await Promise.all([
+        analysisRepository.findAllLedgerEntries(),
+        analysisRepository.findAllottedApplications(),
+        analysisRepository.findAllOperatorTransactions(),
+        analysisRepository.findAllSelfFundedSettledApplications(),
+      ]);
 
     const entries: AnalysisLedgerEntry[] = ledgerRows.map((row) => ({
       type: row.type,
@@ -32,9 +40,33 @@ export const analysisService = {
       issuePrice: row.ipo.issuePrice,
     }));
 
-    const monthly = calculateMonthlyAnalysis(entries);
-    const ipos = calculateIpoAnalysis(entries, applications);
-    const members = calculateMemberAnalysis(entries, new Date());
+    const operatorTransactions: AnalysisOperatorTransaction[] = operatorTransactionRows.map(
+      (row) => ({
+        memberId: row.memberId,
+        memberName: row.member.name,
+        ipoId: row.ipoId,
+        credit: row.credit,
+        debit: row.debit,
+        createdAt: row.createdAt,
+      }),
+    );
+
+    const selfFundedProfits: AnalysisSelfFundedProfit[] = selfFundedRows
+      .filter((row) => row.memberProfitOrLoss !== null)
+      .map((row) => ({
+        memberId: row.memberId,
+        memberName: row.member.name,
+        memberProfitOrLoss: row.memberProfitOrLoss!,
+      }));
+
+    const monthly = calculateMonthlyAnalysis(entries, operatorTransactions);
+    const ipos = calculateIpoAnalysis(entries, applications, operatorTransactions);
+    const members = calculateMemberAnalysis(
+      entries,
+      operatorTransactions,
+      selfFundedProfits,
+      new Date(),
+    );
     const averages = calculateAverages(monthly);
 
     return { monthly, ipos, members, ...averages };

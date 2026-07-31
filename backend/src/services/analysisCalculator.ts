@@ -11,6 +11,26 @@ export interface AnalysisLedgerEntry {
   memberName: string;
 }
 
+/** The operator's own account — cuts/compensation on SELF-funded settlements.
+ * Separate from the Ledger entirely, since this money was never pooled. */
+export interface AnalysisOperatorTransaction {
+  memberId: number;
+  memberName: string;
+  ipoId: number;
+  credit: Prisma.Decimal;
+  debit: Prisma.Decimal;
+  createdAt: Date;
+}
+
+/** A SELF-funded settled application's memberProfitOrLoss — the member's own
+ * trading profit/loss, already net of the operator's cut/compensation, never
+ * posted to the Ledger. */
+export interface AnalysisSelfFundedProfit {
+  memberId: number;
+  memberName: string;
+  memberProfitOrLoss: Prisma.Decimal;
+}
+
 export interface MonthlyAnalysis {
   month: string;
   cashIn: Prisma.Decimal;
@@ -21,6 +41,8 @@ export interface MonthlyAnalysis {
   profit: Prisma.Decimal;
   loss: Prisma.Decimal;
   commission: Prisma.Decimal;
+  /** Cuts taken minus compensation paid on SELF-funded settlements this month. */
+  operatorNet: Prisma.Decimal;
   netIncome: Prisma.Decimal;
 }
 
@@ -38,6 +60,8 @@ export interface IpoAnalysis {
   profit: Prisma.Decimal;
   loss: Prisma.Decimal;
   commission: Prisma.Decimal;
+  /** Cuts taken minus compensation paid on this IPO's SELF-funded settlements. */
+  operatorNet: Prisma.Decimal;
   netIncome: Prisma.Decimal;
   /** netIncome as a percentage of capitalDeployed. */
   roi: Prisma.Decimal;
@@ -51,7 +75,14 @@ export interface MemberAnalysis {
   profit: Prisma.Decimal;
   loss: Prisma.Decimal;
   commission: Prisma.Decimal;
+  /** Wallet-affecting net (Profit - Loss - Commission from the Ledger only). */
   netIncome: Prisma.Decimal;
+  /** This member's own profit/loss on SELF-funded trades — never touches their wallet. */
+  selfFundedProfit: Prisma.Decimal;
+  /** What the operator earned (or paid out) from this member's SELF-funded deals. */
+  yourCut: Prisma.Decimal;
+  /** The member's total profit after commission, across both funding types: netIncome + selfFundedProfit. */
+  totalProfit: Prisma.Decimal;
   /** Credits - debits across every ledger entry for this member. */
   walletBalance: Prisma.Decimal;
   lastActivityAt: Date;
@@ -110,11 +141,18 @@ function applyEntry(bucket: Bucket, entry: AnalysisLedgerEntry): void {
   }
 }
 
-function netIncome(bucket: Bucket): Prisma.Decimal {
+function ledgerNetIncome(bucket: Bucket): Prisma.Decimal {
   return bucket.profit.minus(bucket.loss).minus(bucket.commission);
 }
 
-export function calculateMonthlyAnalysis(entries: AnalysisLedgerEntry[]): MonthlyAnalysis[] {
+function operatorNetOf(tx: AnalysisOperatorTransaction): Prisma.Decimal {
+  return tx.credit.minus(tx.debit);
+}
+
+export function calculateMonthlyAnalysis(
+  entries: AnalysisLedgerEntry[],
+  operatorTransactions: AnalysisOperatorTransaction[],
+): MonthlyAnalysis[] {
   const buckets = new Map<string, Bucket>();
   for (const entry of entries) {
     const key = monthKey(entry.createdAt);
@@ -123,9 +161,17 @@ export function calculateMonthlyAnalysis(entries: AnalysisLedgerEntry[]): Monthl
     buckets.set(key, bucket);
   }
 
+  const operatorNetByMonth = new Map<string, Prisma.Decimal>();
+  for (const tx of operatorTransactions) {
+    const key = monthKey(tx.createdAt);
+    operatorNetByMonth.set(key, (operatorNetByMonth.get(key) ?? zero()).plus(operatorNetOf(tx)));
+  }
+
+  const months = new Set([...buckets.keys(), ...operatorNetByMonth.keys()]);
   let cumulativeCapital = zero();
-  return [...buckets.keys()].sort().map((month) => {
-    const bucket = buckets.get(month)!;
+  return [...months].sort().map((month) => {
+    const bucket = buckets.get(month) ?? emptyBucket();
+    const operatorNet = operatorNetByMonth.get(month) ?? zero();
     cumulativeCapital = cumulativeCapital.plus(bucket.cashIn).minus(bucket.cashOut);
     return {
       month,
@@ -136,7 +182,8 @@ export function calculateMonthlyAnalysis(entries: AnalysisLedgerEntry[]): Monthl
       profit: bucket.profit,
       loss: bucket.loss,
       commission: bucket.commission,
-      netIncome: netIncome(bucket),
+      operatorNet,
+      netIncome: ledgerNetIncome(bucket).plus(operatorNet),
     };
   });
 }
@@ -144,6 +191,7 @@ export function calculateMonthlyAnalysis(entries: AnalysisLedgerEntry[]): Monthl
 export function calculateIpoAnalysis(
   entries: AnalysisLedgerEntry[],
   applications: AnalysisApplicationInput[],
+  operatorTransactions: AnalysisOperatorTransaction[],
 ): IpoAnalysis[] {
   const capitalByIpo = new Map<number, { company: string; capital: Prisma.Decimal }>();
   for (const app of applications) {
@@ -163,14 +211,20 @@ export function calculateIpoAnalysis(
     buckets.set(entry.ipoId, record);
   }
 
-  const ipoIds = new Set([...capitalByIpo.keys(), ...buckets.keys()]);
+  const operatorNetByIpo = new Map<number, Prisma.Decimal>();
+  for (const tx of operatorTransactions) {
+    operatorNetByIpo.set(tx.ipoId, (operatorNetByIpo.get(tx.ipoId) ?? zero()).plus(operatorNetOf(tx)));
+  }
+
+  const ipoIds = new Set([...capitalByIpo.keys(), ...buckets.keys(), ...operatorNetByIpo.keys()]);
   return [...ipoIds]
     .map((ipoId) => {
       const capitalRecord = capitalByIpo.get(ipoId);
       const ledgerRecord = buckets.get(ipoId);
       const bucket = ledgerRecord?.bucket ?? emptyBucket();
       const capitalDeployed = capitalRecord?.capital ?? zero();
-      const net = netIncome(bucket);
+      const operatorNet = operatorNetByIpo.get(ipoId) ?? zero();
+      const net = ledgerNetIncome(bucket).plus(operatorNet);
       return {
         ipoId,
         company: capitalRecord?.company ?? ledgerRecord?.company ?? "Unknown",
@@ -178,6 +232,7 @@ export function calculateIpoAnalysis(
         profit: bucket.profit,
         loss: bucket.loss,
         commission: bucket.commission,
+        operatorNet,
         netIncome: net,
         roi: capitalDeployed.isZero() ? zero() : net.dividedBy(capitalDeployed).times(100),
       };
@@ -187,6 +242,8 @@ export function calculateIpoAnalysis(
 
 export function calculateMemberAnalysis(
   entries: AnalysisLedgerEntry[],
+  operatorTransactions: AnalysisOperatorTransaction[],
+  selfFundedProfits: AnalysisSelfFundedProfit[],
   now: Date,
 ): MemberAnalysis[] {
   const buckets = new Map<
@@ -210,27 +267,58 @@ export function calculateMemberAnalysis(
     buckets.set(entry.memberId, record);
   }
 
-  return [...buckets.entries()]
-    .map(([memberId, record]) => {
-      const walletBalance = record.credit.minus(record.debit);
+  const namesByMember = new Map<number, string>();
+
+  const yourCutByMember = new Map<number, Prisma.Decimal>();
+  for (const tx of operatorTransactions) {
+    yourCutByMember.set(tx.memberId, (yourCutByMember.get(tx.memberId) ?? zero()).plus(operatorNetOf(tx)));
+    namesByMember.set(tx.memberId, tx.memberName);
+  }
+
+  const selfFundedProfitByMember = new Map<number, Prisma.Decimal>();
+  for (const p of selfFundedProfits) {
+    selfFundedProfitByMember.set(
+      p.memberId,
+      (selfFundedProfitByMember.get(p.memberId) ?? zero()).plus(p.memberProfitOrLoss),
+    );
+    namesByMember.set(p.memberId, p.memberName);
+  }
+
+  const memberIds = new Set([
+    ...buckets.keys(),
+    ...yourCutByMember.keys(),
+    ...selfFundedProfitByMember.keys(),
+  ]);
+
+  return [...memberIds]
+    .map((memberId) => {
+      const record = buckets.get(memberId);
+      const bucket = record?.bucket ?? emptyBucket();
+      const walletBalance = record ? record.credit.minus(record.debit) : zero();
+      const lastActivityAt = record?.lastActivityAt ?? now;
       const outstandingDays = Math.floor(
-        (now.getTime() - record.lastActivityAt.getTime()) / (1000 * 60 * 60 * 24),
+        (now.getTime() - lastActivityAt.getTime()) / (1000 * 60 * 60 * 24),
       );
+      const netIncome = ledgerNetIncome(bucket);
+      const selfFundedProfit = selfFundedProfitByMember.get(memberId) ?? zero();
       return {
         memberId,
-        name: record.name,
-        capitalSent: record.bucket.cashIn,
-        capitalReturned: record.bucket.cashOut,
-        profit: record.bucket.profit,
-        loss: record.bucket.loss,
-        commission: record.bucket.commission,
-        netIncome: netIncome(record.bucket),
+        name: record?.name ?? namesByMember.get(memberId) ?? "Unknown",
+        capitalSent: bucket.cashIn,
+        capitalReturned: bucket.cashOut,
+        profit: bucket.profit,
+        loss: bucket.loss,
+        commission: bucket.commission,
+        netIncome,
+        selfFundedProfit,
+        yourCut: yourCutByMember.get(memberId) ?? zero(),
+        totalProfit: netIncome.plus(selfFundedProfit),
         walletBalance,
-        lastActivityAt: record.lastActivityAt,
+        lastActivityAt,
         outstandingDays: walletBalance.isZero() ? 0 : outstandingDays,
       };
     })
-    .sort((a, b) => b.netIncome.comparedTo(a.netIncome));
+    .sort((a, b) => b.totalProfit.comparedTo(a.totalProfit));
 }
 
 export function calculateAverages(monthly: MonthlyAnalysis[]): AnalysisAverages {

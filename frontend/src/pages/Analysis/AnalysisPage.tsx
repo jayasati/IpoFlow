@@ -23,6 +23,10 @@ function tone(value: string): "good" | "critical" | "neutral" {
   return num > 0 ? "good" : num < 0 ? "critical" : "neutral";
 }
 
+function toneText(value: string): string {
+  return tone(value) === "critical" ? "text-[#d03b3b]" : "text-[#0ca30c]";
+}
+
 const ipoColumns: Column<IpoAnalysis>[] = [
   { key: "company", header: "IPO", render: (row) => row.company },
   {
@@ -31,42 +35,47 @@ const ipoColumns: Column<IpoAnalysis>[] = [
     render: (row) => formatCurrency(row.capitalDeployed),
   },
   {
+    key: "operatorNet",
+    header: "Your cut",
+    render: (row) =>
+      Number(row.operatorNet) === 0 ? (
+        <span className="text-slate-400">—</span>
+      ) : (
+        <span className={toneText(row.operatorNet)}>{formatCurrency(row.operatorNet)}</span>
+      ),
+  },
+  {
     key: "netIncome",
     header: "Net profit",
-    render: (row) => (
-      <span className={tone(row.netIncome) === "critical" ? "text-[#d03b3b]" : "text-[#0ca30c]"}>
-        {formatCurrency(row.netIncome)}
-      </span>
-    ),
+    render: (row) => <span className={toneText(row.netIncome)}>{formatCurrency(row.netIncome)}</span>,
   },
   {
     key: "roi",
     header: "ROI",
-    render: (row) => (
-      <span className={tone(row.roi) === "critical" ? "text-[#d03b3b]" : "text-[#0ca30c]"}>
-        {formatPercent(row.roi)}
-      </span>
-    ),
+    render: (row) => <span className={toneText(row.roi)}>{formatPercent(row.roi)}</span>,
   },
 ];
 
 const memberColumns: Column<MemberAnalysis>[] = [
   { key: "name", header: "Member", render: (row) => row.name },
-  { key: "capitalSent", header: "Capital sent", render: (row) => formatCurrency(row.capitalSent) },
   {
-    key: "capitalReturned",
-    header: "Capital returned",
-    render: (row) => formatCurrency(row.capitalReturned),
-  },
-  {
-    key: "netIncome",
-    header: "Net profit",
+    key: "totalProfit",
+    header: "Total profit (after commission)",
     render: (row) => (
-      <span className={tone(row.netIncome) === "critical" ? "text-[#d03b3b]" : "text-[#0ca30c]"}>
-        {formatCurrency(row.netIncome)}
-      </span>
+      <span className={toneText(row.totalProfit)}>{formatCurrency(row.totalProfit)}</span>
     ),
   },
+  {
+    key: "yourCut",
+    header: "Your cut",
+    render: (row) =>
+      Number(row.yourCut) === 0 ? (
+        <span className="text-slate-400">—</span>
+      ) : (
+        <span className={toneText(row.yourCut)}>{formatCurrency(row.yourCut)}</span>
+      ),
+  },
+  { key: "capitalSent", header: "Capital sent", render: (row) => formatCurrency(row.capitalSent) },
   {
     key: "walletBalance",
     header: "Wallet balance",
@@ -100,6 +109,7 @@ export function AnalysisPage() {
   }
 
   const totalNetIncome = data.monthly.reduce((sum, m) => sum + Number(m.netIncome), 0);
+  const totalYourCut = data.members.reduce((sum, m) => sum + Number(m.yourCut), 0);
 
   const cashFlowData = data.monthly.map((m: MonthlyAnalysis) => ({
     month: formatMonthLabel(m.month),
@@ -116,7 +126,7 @@ export function AnalysisPage() {
     <div>
       <h1 className="text-2xl font-semibold">Analysis</h1>
 
-      <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-5">
         <StatCard label="Avg monthly cash in" value={formatCurrency(data.avgMonthlyCashIn)} />
         <StatCard
           label="Avg monthly net income"
@@ -129,6 +139,27 @@ export function AnalysisPage() {
           value={formatCurrency(totalNetIncome)}
           tone={totalNetIncome > 0 ? "good" : totalNetIncome < 0 ? "critical" : "neutral"}
         />
+        <StatCard
+          label="Your cut (self-funded)"
+          value={formatCurrency(totalYourCut)}
+          tone={totalYourCut > 0 ? "good" : totalYourCut < 0 ? "critical" : "neutral"}
+        />
+      </div>
+
+      <div className="mt-6">
+        <h2 className="text-sm font-semibold text-slate-700">Member profitability</h2>
+        <p className="mt-0.5 text-xs text-slate-400">
+          Total profit after commission, across both pooled-capital and self-funded deals. "Your
+          cut" is what you personally earned from that member's self-funded trades.
+        </p>
+        <div className="mt-2">
+          <DataTable
+            columns={memberColumns}
+            rows={data.members}
+            getRowId={(row) => row.memberId}
+            emptyMessage="No member activity recorded yet."
+          />
+        </div>
       </div>
 
       <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
@@ -171,6 +202,7 @@ export function AnalysisPage() {
 
         <div className="rounded-lg border border-slate-200 bg-white p-4">
           <h2 className="text-sm font-semibold text-slate-700">Monthly income</h2>
+          <p className="text-xs text-slate-400">Includes your cut from self-funded settlements.</p>
           <div className="mt-3 h-64">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={incomeData} margin={{ left: 8, right: 16 }}>
@@ -206,18 +238,6 @@ export function AnalysisPage() {
             rows={data.ipos}
             getRowId={(row) => row.ipoId}
             emptyMessage="No IPO activity recorded yet."
-          />
-        </div>
-      </div>
-
-      <div className="mt-6">
-        <h2 className="text-sm font-semibold text-slate-700">Member profitability</h2>
-        <div className="mt-2">
-          <DataTable
-            columns={memberColumns}
-            rows={data.members}
-            getRowId={(row) => row.memberId}
-            emptyMessage="No member activity recorded yet."
           />
         </div>
       </div>

@@ -27,4 +27,24 @@ export const analysisRepository = {
       },
     });
   },
+
+  /** The operator's own account — cuts/compensation on SELF-funded settlements.
+   * Never appears in the Ledger, so it has to be folded in separately. Includes
+   * the member name directly since a SELF-funded member may have zero ledger
+   * entries (their money never touched pooled capital) to resolve it from. */
+  findAllOperatorTransactions() {
+    return prisma.operatorTransaction.findMany({
+      include: { member: { select: { name: true } } },
+    });
+  },
+
+  /** SELF-funded settled applications — memberProfitOrLoss is the member's own
+   * trading profit/loss (already net of the operator's cut/compensation), never
+   * posted to the Ledger, so it's invisible to analysis unless fetched here. */
+  findAllSelfFundedSettledApplications() {
+    return prisma.application.findMany({
+      where: { fundingSource: "SELF", status: "SETTLED" },
+      select: { memberId: true, memberProfitOrLoss: true, member: { select: { name: true } } },
+    });
+  },
 };

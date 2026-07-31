@@ -23,6 +23,9 @@ export interface Application {
   member?: Member;
   /** Present when fetched via GET /applications?memberId= or by application id. */
   ipo?: Ipo;
+  /** Present when fetched via GET /applications?memberId=: your cut/compensation on this
+   * SELF-funded settlement, if any money changed hands. */
+  operatorTransaction?: { credit: string; debit: string; description: string | null } | null;
 }
 
 export interface BulkApplicationItem {

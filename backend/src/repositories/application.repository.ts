@@ -19,6 +19,7 @@ const withMember = {
 
 const withIpo = {
   ipo: true,
+  operatorTransaction: true,
 } satisfies Prisma.ApplicationInclude;
 
 const withDetails = {

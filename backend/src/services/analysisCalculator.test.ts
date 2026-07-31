@@ -7,7 +7,12 @@ import {
   calculateMemberAnalysis,
   calculateMonthlyAnalysis,
 } from "./analysisCalculator";
-import type { AnalysisApplicationInput, AnalysisLedgerEntry } from "./analysisCalculator";
+import type {
+  AnalysisApplicationInput,
+  AnalysisLedgerEntry,
+  AnalysisOperatorTransaction,
+  AnalysisSelfFundedProfit,
+} from "./analysisCalculator";
 
 function entry(overrides: Partial<AnalysisLedgerEntry>): AnalysisLedgerEntry {
   return {
@@ -19,6 +24,18 @@ function entry(overrides: Partial<AnalysisLedgerEntry>): AnalysisLedgerEntry {
     ipoCompany: "Acme Ltd",
     memberId: 1,
     memberName: "Asha",
+    ...overrides,
+  };
+}
+
+function operatorTx(overrides: Partial<AnalysisOperatorTransaction>): AnalysisOperatorTransaction {
+  return {
+    memberId: 1,
+    memberName: "Asha",
+    ipoId: 1,
+    credit: new Prisma.Decimal(0),
+    debit: new Prisma.Decimal(0),
+    createdAt: new Date("2026-01-15T00:00:00Z"),
     ...overrides,
   };
 }
@@ -38,7 +55,7 @@ test("calculateMonthlyAnalysis buckets by month and computes net cash flow / inc
     }),
   ];
 
-  const result = calculateMonthlyAnalysis(entries);
+  const result = calculateMonthlyAnalysis(entries, []);
 
   assert.equal(result.length, 2);
   assert.equal(result[0].month, "2026-01");
@@ -58,10 +75,23 @@ test("calculateMonthlyAnalysis nets money returned against money sent for cash f
     entry({ type: LedgerType.MONEY_RETURNED, debit: new Prisma.Decimal(4000) }),
   ];
 
-  const [month] = calculateMonthlyAnalysis(entries);
+  const [month] = calculateMonthlyAnalysis(entries, []);
 
   assert.equal(month.netCashFlow.toString(), "6000");
   assert.equal(month.cumulativeCapital.toString(), "6000");
+});
+
+test("calculateMonthlyAnalysis folds operator transactions (self-funded cuts/compensation) into netIncome by month", () => {
+  const operatorTransactions = [
+    operatorTx({ credit: new Prisma.Decimal(4400), createdAt: new Date("2026-02-05T00:00:00Z") }),
+  ];
+
+  const result = calculateMonthlyAnalysis([], operatorTransactions);
+
+  assert.equal(result.length, 1);
+  assert.equal(result[0].month, "2026-02");
+  assert.equal(result[0].operatorNet.toString(), "4400");
+  assert.equal(result[0].netIncome.toString(), "4400");
 });
 
 function application(overrides: Partial<AnalysisApplicationInput>): AnalysisApplicationInput {
@@ -84,7 +114,7 @@ test("calculateIpoAnalysis computes ROI relative to capital deployed (shares * i
     entry({ ipoId: 2, ipoCompany: "Beta Inc", type: LedgerType.LOSS, debit: new Prisma.Decimal(1000) }),
   ];
 
-  const result = calculateIpoAnalysis(entries, applications);
+  const result = calculateIpoAnalysis(entries, applications, []);
 
   assert.equal(result.length, 2);
   assert.equal(result[0].company, "Acme Ltd");
@@ -97,7 +127,7 @@ test("calculateIpoAnalysis computes ROI relative to capital deployed (shares * i
 test("calculateIpoAnalysis still reports capital deployed for an IPO with no ledger activity yet", () => {
   const applications = [application({ ipoId: 1, ipoCompany: "Acme Ltd", shares: 50, issuePrice: new Prisma.Decimal(200) })];
 
-  const result = calculateIpoAnalysis([], applications);
+  const result = calculateIpoAnalysis([], applications, []);
 
   assert.equal(result.length, 1);
   assert.equal(result[0].capitalDeployed.toString(), "10000");
@@ -108,10 +138,26 @@ test("calculateIpoAnalysis still reports capital deployed for an IPO with no led
 test("calculateIpoAnalysis ignores ledger entries with no ipoId (pure member wallet movements)", () => {
   const entries = [entry({ ipoId: null, ipoCompany: null, type: LedgerType.MONEY_SENT, credit: new Prisma.Decimal(500) })];
 
-  assert.deepEqual(calculateIpoAnalysis(entries, []), []);
+  assert.deepEqual(calculateIpoAnalysis(entries, [], []), []);
 });
 
-test("calculateMemberAnalysis computes wallet balance and outstanding aging, sorted by net income", () => {
+test("calculateIpoAnalysis folds a self-funded application's operator cut into that IPO's net income and ROI, even with zero capital deployed via ledger", () => {
+  const applications = [
+    application({ ipoId: 5, ipoCompany: "Indo-MIIM LTD IPO", shares: 30, issuePrice: new Prisma.Decimal(485) }),
+  ];
+  const operatorTransactions = [
+    operatorTx({ ipoId: 5, credit: new Prisma.Decimal(4400) }),
+  ];
+
+  const result = calculateIpoAnalysis([], applications, operatorTransactions);
+
+  assert.equal(result.length, 1);
+  assert.equal(result[0].capitalDeployed.toString(), "14550");
+  assert.equal(result[0].operatorNet.toString(), "4400");
+  assert.equal(result[0].netIncome.toString(), "4400");
+});
+
+test("calculateMemberAnalysis computes wallet balance and outstanding aging, sorted by total profit", () => {
   const now = new Date("2026-03-01T00:00:00Z");
   const entries = [
     entry({
@@ -144,11 +190,12 @@ test("calculateMemberAnalysis computes wallet balance and outstanding aging, sor
     }),
   ];
 
-  const result = calculateMemberAnalysis(entries, now);
+  const result = calculateMemberAnalysis(entries, [], [], now);
 
   assert.equal(result.length, 2);
   assert.equal(result[0].name, "Asha");
   assert.equal(result[0].netIncome.toString(), "3000");
+  assert.equal(result[0].totalProfit.toString(), "3000");
   assert.equal(result[0].walletBalance.toString(), "13000");
   assert.equal(result[0].outstandingDays, 40);
 
@@ -158,15 +205,40 @@ test("calculateMemberAnalysis computes wallet balance and outstanding aging, sor
   assert.equal(rohit.outstandingDays, 0);
 });
 
+test("calculateMemberAnalysis surfaces a self-funded member with zero ledger entries — their own profit, the operator's cut, and totalProfit all resolve correctly, wallet stays zero", () => {
+  const now = new Date("2026-08-01T00:00:00Z");
+  const operatorTransactions = [
+    operatorTx({ memberId: 24, memberName: "Nakul Rathod", credit: new Prisma.Decimal(4400) }),
+  ];
+  const selfFundedProfits: AnalysisSelfFundedProfit[] = [
+    { memberId: 24, memberName: "Nakul Rathod", memberProfitOrLoss: new Prisma.Decimal(2050) },
+  ];
+
+  const result = calculateMemberAnalysis([], operatorTransactions, selfFundedProfits, now);
+
+  assert.equal(result.length, 1);
+  const nakul = result[0];
+  assert.equal(nakul.name, "Nakul Rathod");
+  assert.equal(nakul.netIncome.toString(), "0");
+  assert.equal(nakul.selfFundedProfit.toString(), "2050");
+  assert.equal(nakul.yourCut.toString(), "4400");
+  assert.equal(nakul.totalProfit.toString(), "2050");
+  assert.equal(nakul.walletBalance.toString(), "0");
+  assert.equal(nakul.outstandingDays, 0);
+});
+
 test("calculateAverages divides monthly totals by the number of months present", () => {
-  const monthly = calculateMonthlyAnalysis([
-    entry({ type: LedgerType.MONEY_SENT, credit: new Prisma.Decimal(10000) }),
-    entry({
-      type: LedgerType.PROFIT,
-      credit: new Prisma.Decimal(2000),
-      createdAt: new Date("2026-02-10T00:00:00Z"),
-    }),
-  ]);
+  const monthly = calculateMonthlyAnalysis(
+    [
+      entry({ type: LedgerType.MONEY_SENT, credit: new Prisma.Decimal(10000) }),
+      entry({
+        type: LedgerType.PROFIT,
+        credit: new Prisma.Decimal(2000),
+        createdAt: new Date("2026-02-10T00:00:00Z"),
+      }),
+    ],
+    [],
+  );
 
   const averages = calculateAverages(monthly);
 

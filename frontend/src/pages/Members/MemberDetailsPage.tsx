@@ -54,6 +54,12 @@ export function MemberDetailsPage() {
   const ledgerEntries = ledgerResult?.data ?? [];
   const applications = applicationsResult?.data ?? [];
 
+  const yourCutTotal = applications.reduce((sum, a) => {
+    if (!a.operatorTransaction) return sum;
+    return sum + Number(a.operatorTransaction.credit) - Number(a.operatorTransaction.debit);
+  }, 0);
+  const hasSelfFundedActivity = applications.some((a) => a.fundingSource === "SELF");
+
   const ledgerColumns: Column<LedgerEntry>[] = [
     { key: "createdAt", header: "Date", render: (e) => new Date(e.createdAt).toLocaleString() },
     { key: "type", header: "Type", render: (e) => e.type },
@@ -86,6 +92,23 @@ export function MemberDetailsPage() {
         return (
           <span className={value >= 0 ? "text-[#0ca30c]" : "text-[#d03b3b]"}>
             {formatCurrency(a.memberProfitOrLoss)}
+          </span>
+        );
+      },
+    },
+    {
+      key: "yourCut",
+      header: "Your cut",
+      render: (a) => {
+        if (!a.operatorTransaction) {
+          return "—";
+        }
+        const credit = Number(a.operatorTransaction.credit);
+        const debit = Number(a.operatorTransaction.debit);
+        const value = credit - debit;
+        return (
+          <span className={value >= 0 ? "text-[#0ca30c]" : "text-[#d03b3b]"}>
+            {formatCurrency(Math.abs(value))} {value >= 0 ? "earned" : "paid"}
           </span>
         );
       },
@@ -131,6 +154,16 @@ export function MemberDetailsPage() {
         <StatCard label="Wallet balance" value={formatCurrency(wallet?.balance ?? "0")} />
         <StatCard label="Outstanding" value={formatCurrency(wallet?.outstanding ?? "0")} />
       </div>
+
+      {hasSelfFundedActivity ? (
+        <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <StatCard
+            label="Your profit from this member"
+            value={formatCurrency(Math.abs(yourCutTotal))}
+            tone={yourCutTotal > 0 ? "good" : yourCutTotal < 0 ? "critical" : "neutral"}
+          />
+        </div>
+      ) : null}
 
       <h2 className="mt-6 text-sm font-semibold text-slate-700">IPO History</h2>
       <div className="mt-2">
