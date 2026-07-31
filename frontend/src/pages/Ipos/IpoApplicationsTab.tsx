@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { listApplications, updateAllotment } from "../../api/applications";
+import { listApplications, updateAllotment, updateFundingSource } from "../../api/applications";
 import { ApiError } from "../../api/client";
 import { DataTable } from "../../components/table/DataTable";
 import type { Column } from "../../components/table/DataTable";
@@ -43,6 +43,19 @@ export function IpoApplicationsTab({ ipo, onApplicationsChanged }: IpoApplicatio
     }
   };
 
+  const handleFundingToggle = async (application: Application) => {
+    const next = application.fundingSource === "SELF" ? "OPERATOR" : "SELF";
+    try {
+      const updated = await updateFundingSource(application.id, next);
+      setResult((prev) =>
+        prev ? { data: prev.data.map((a) => (a.id === updated.id ? updated : a)) } : prev,
+      );
+      setError(null);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Failed to update funding source.");
+    }
+  };
+
   const columns: Column<Application>[] = [
     { key: "member", header: "Member", render: (a) => a.member?.name ?? "—" },
     { key: "lots", header: "Lots", render: (a) => `${a.lots}` },
@@ -58,6 +71,32 @@ export function IpoApplicationsTab({ ipo, onApplicationsChanged }: IpoApplicatio
       ),
     },
     { key: "status", header: "Status", render: (a) => a.status },
+    {
+      key: "funding",
+      header: "Funding",
+      render: (a) =>
+        a.status === "SETTLED" ? (
+          a.fundingSource === "SELF" ? (
+            <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">
+              Self-funded
+            </span>
+          ) : (
+            <span className="text-xs text-slate-400">Operator</span>
+          )
+        ) : (
+          <button
+            type="button"
+            onClick={() => void handleFundingToggle(a)}
+            className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+              a.fundingSource === "SELF"
+                ? "bg-amber-100 text-amber-800 hover:bg-amber-200"
+                : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+            }`}
+          >
+            {a.fundingSource === "SELF" ? "Self-funded" : "Operator"}
+          </button>
+        ),
+    },
   ];
 
   return (

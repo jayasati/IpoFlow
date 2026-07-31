@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { FundingSource } from "../generated/prisma/client";
 
 export const bulkApplicationSchema = z.object({
   ipoId: z.coerce.number().int().positive(),
@@ -7,9 +8,14 @@ export const bulkApplicationSchema = z.object({
       z.object({
         memberId: z.number().int().positive(),
         lots: z.number().int().positive("Lots must be a positive whole number"),
+        fundingSource: z.nativeEnum(FundingSource).optional(),
       }),
     )
     .min(1, "At least one member application is required"),
+});
+
+export const updateFundingSourceSchema = z.object({
+  fundingSource: z.nativeEnum(FundingSource),
 });
 
 export const applicationListQuerySchema = z

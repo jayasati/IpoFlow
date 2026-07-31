@@ -7,6 +7,8 @@ function ledgerTotal(type: LedgerType, credit: string, debit: string) {
   return { type, credit: new Prisma.Decimal(credit), debit: new Prisma.Decimal(debit) };
 }
 
+const ZERO = new Prisma.Decimal(0);
+
 test("computes capital used from Money Sent credits only", () => {
   const result = calculateDashboard({
     ledgerTotals: [
@@ -15,6 +17,7 @@ test("computes capital used from Money Sent credits only", () => {
     ],
     ipoStatusCounts: [],
     memberCount: 0,
+    operatorNet: ZERO,
   });
   assert.equal(result.capitalUsed.toString(), "15000");
 });
@@ -29,6 +32,7 @@ test("wallet is total credits minus total debits across every ledger type", () =
     ],
     ipoStatusCounts: [],
     memberCount: 0,
+    operatorNet: ZERO,
   });
   // Matches docs/examples.md Example 1 exactly: wallet/outstanding = 7500.
   assert.equal(result.wallet.toString(), "7500");
@@ -44,8 +48,23 @@ test("profit is Profit minus Loss minus Commission - the operator's true net ear
     ],
     ipoStatusCounts: [],
     memberCount: 0,
+    operatorNet: ZERO,
   });
   assert.equal(result.profit.toString(), "2500");
+});
+
+test("profit also includes the operator's own account net (cuts taken minus compensation paid on self-funded deals)", () => {
+  const result = calculateDashboard({
+    ledgerTotals: [
+      ledgerTotal(LedgerType.PROFIT, "5000", "0"),
+      ledgerTotal(LedgerType.LOSS, "0", "2000"),
+      ledgerTotal(LedgerType.COMMISSION, "0", "500"),
+    ],
+    ipoStatusCounts: [],
+    memberCount: 0,
+    operatorNet: new Prisma.Decimal("4400"),
+  });
+  assert.equal(result.profit.toString(), "6900");
 });
 
 test("ROI is profit as a percentage of capital used", () => {
@@ -56,6 +75,7 @@ test("ROI is profit as a percentage of capital used", () => {
     ],
     ipoStatusCounts: [],
     memberCount: 0,
+    operatorNet: ZERO,
   });
   assert.equal(result.roi.toString(), "25");
 });
@@ -65,6 +85,7 @@ test("ROI is zero (not a division error) when no capital has been deployed yet",
     ledgerTotals: [],
     ipoStatusCounts: [],
     memberCount: 0,
+    operatorNet: ZERO,
   });
   assert.equal(result.roi.toString(), "0");
 });
@@ -79,25 +100,41 @@ test("active IPOs excludes only COMPLETE, counting every other status", () => {
       { status: IpoStatus.COMPLETE, count: 5 },
     ],
     memberCount: 0,
+    operatorNet: ZERO,
   });
   assert.equal(result.activeIpos, 6);
 });
 
 test("passes member count through unchanged", () => {
-  const result = calculateDashboard({ ledgerTotals: [], ipoStatusCounts: [], memberCount: 42 });
+  const result = calculateDashboard({
+    ledgerTotals: [],
+    ipoStatusCounts: [],
+    memberCount: 42,
+    operatorNet: ZERO,
+  });
   assert.equal(result.members, 42);
 });
 
 test("charts carry the raw breakdown data through for the frontend to render", () => {
   const ipoStatusCounts = [{ status: IpoStatus.OPEN, count: 4 }];
   const ledgerTotals = [ledgerTotal(LedgerType.MONEY_SENT, "1000", "0")];
-  const result = calculateDashboard({ ledgerTotals, ipoStatusCounts, memberCount: 0 });
+  const result = calculateDashboard({
+    ledgerTotals,
+    ipoStatusCounts,
+    memberCount: 0,
+    operatorNet: ZERO,
+  });
   assert.deepEqual(result.charts.ipoStatusBreakdown, ipoStatusCounts);
   assert.deepEqual(result.charts.ledgerBreakdown, ledgerTotals);
 });
 
 test("a portfolio with no activity yet reports all-zero figures without erroring", () => {
-  const result = calculateDashboard({ ledgerTotals: [], ipoStatusCounts: [], memberCount: 0 });
+  const result = calculateDashboard({
+    ledgerTotals: [],
+    ipoStatusCounts: [],
+    memberCount: 0,
+    operatorNet: ZERO,
+  });
   assert.equal(result.capitalUsed.toString(), "0");
   assert.equal(result.wallet.toString(), "0");
   assert.equal(result.profit.toString(), "0");

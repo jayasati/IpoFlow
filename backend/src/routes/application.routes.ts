@@ -4,6 +4,7 @@ import {
   getApplication,
   listApplications,
   updateAllotment,
+  updateFundingSource,
 } from "../controllers/application.controller";
 import { saleRouter } from "./sale.routes";
 
@@ -13,4 +14,5 @@ applicationRouter.get("/", listApplications);
 applicationRouter.post("/bulk", bulkCreateApplications);
 applicationRouter.get("/:id", getApplication);
 applicationRouter.put("/:id/allotment", updateAllotment);
+applicationRouter.put("/:id/funding-source", updateFundingSource);
 applicationRouter.use("/:id", saleRouter);

@@ -7,6 +7,7 @@ const navItems = [
   { to: "/members", label: "Members" },
   { to: "/ipos", label: "IPOs" },
   { to: "/analysis", label: "Analysis" },
+  { to: "/my-account", label: "My Account" },
 ];
 
 export function AppShell() {

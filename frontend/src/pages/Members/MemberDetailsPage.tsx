@@ -75,6 +75,21 @@ export function MemberDetailsPage() {
     { key: "lots", header: "Lots", render: (a) => `${a.lots}` },
     { key: "shares", header: "Shares", render: (a) => `${a.shares}` },
     { key: "status", header: "Status", render: (a) => a.status },
+    {
+      key: "profitLoss",
+      header: "Profit/Loss",
+      render: (a) => {
+        if (a.fundingSource !== "SELF" || a.memberProfitOrLoss === null) {
+          return "—";
+        }
+        const value = Number(a.memberProfitOrLoss);
+        return (
+          <span className={value >= 0 ? "text-[#0ca30c]" : "text-[#d03b3b]"}>
+            {formatCurrency(a.memberProfitOrLoss)}
+          </span>
+        );
+      },
+    },
   ];
 
   return (

@@ -17,9 +17,10 @@ model Member {
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
 
-  applications     Application[]
-  ledgerEntries    Ledger[]
-  groupMemberships ParticipantGroupMember[]
+  applications         Application[]
+  ledgerEntries        Ledger[]
+  groupMemberships     ParticipantGroupMember[]
+  operatorTransactions OperatorTransaction[]
 }
 
 enum IpoStatus {
@@ -41,8 +42,9 @@ model Ipo {
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
 
-  applications  Application[]
-  ledgerEntries Ledger[]
+  applications         Application[]
+  ledgerEntries        Ledger[]
+  operatorTransactions OperatorTransaction[]
 }
 
 enum ApplicationStatus {
@@ -54,20 +56,36 @@ enum ApplicationStatus {
   SETTLED
 }
 
-model Application {
-  id             Int               @id @default(autoincrement())
-  ipoId          Int
-  memberId       Int
-  lots           Int
-  shares         Int               @default(0)
-  commissionRate Decimal?          @db.Decimal(5, 2)
-  status         ApplicationStatus @default(APPLIED)
-  createdAt      DateTime          @default(now())
-  updatedAt      DateTime          @updatedAt
+enum FundingSource {
+  /// Money is pooled through the operator (default) -- normal settlement posts
+  /// the full profit/loss to the member's ledger/wallet.
+  OPERATOR
+  /// Member used their own money outside the app -- settlement never touches
+  /// their wallet; only the operator's agreed cut/compensation is recorded,
+  /// on the operator's own account.
+  SELF
+}
 
-  ipo    Ipo    @relation(fields: [ipoId], references: [id])
-  member Member @relation(fields: [memberId], references: [id])
-  sales  Sale[]
+model Application {
+  id                 Int               @id @default(autoincrement())
+  ipoId              Int
+  memberId           Int
+  lots               Int
+  shares             Int               @default(0)
+  commissionRate     Decimal?          @db.Decimal(5, 2)
+  status             ApplicationStatus @default(APPLIED)
+  fundingSource      FundingSource     @default(OPERATOR)
+  /// Informational only, set when a SELF-funded application settles: the
+  /// member's own profit/loss on the trade after the operator's cut/compensation.
+  /// Never affects the member's wallet.
+  memberProfitOrLoss Decimal?          @db.Decimal(12, 2)
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+
+  ipo                 Ipo                  @relation(fields: [ipoId], references: [id])
+  member              Member               @relation(fields: [memberId], references: [id])
+  sales               Sale[]
+  operatorTransaction OperatorTransaction?
 
   @@unique([ipoId, memberId])
 }
@@ -116,6 +134,28 @@ model Ledger {
   @@index([memberId])
   @@index([ipoId])
   @@index([saleId])
+}
+
+/// The operator's own account -- tracks cuts taken from a SELF-funded member's
+/// profit (credit) and compensation paid out on a SELF-funded member's loss
+/// (debit). Entirely separate from Member/Ledger: this money never passed
+/// through pooled capital, so it never touches a member's wallet.
+model OperatorTransaction {
+  id            Int      @id @default(autoincrement())
+  applicationId Int      @unique
+  memberId      Int
+  ipoId         Int
+  credit        Decimal  @default(0) @db.Decimal(12, 2)
+  debit         Decimal  @default(0) @db.Decimal(12, 2)
+  description   String?  @db.Text
+  createdAt     DateTime @default(now())
+
+  application Application @relation(fields: [applicationId], references: [id])
+  member      Member      @relation(fields: [memberId], references: [id])
+  ipo         Ipo         @relation(fields: [ipoId], references: [id])
+
+  @@index([memberId])
+  @@index([ipoId])
 }
 
 model ParticipantGroup {

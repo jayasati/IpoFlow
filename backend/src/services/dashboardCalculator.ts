@@ -6,6 +6,9 @@ export interface DashboardInput {
   ledgerTotals: LedgerTypeTotal[];
   ipoStatusCounts: IpoStatusCount[];
   memberCount: number;
+  /** Net of the operator's own account (cuts taken minus compensation paid on
+   * SELF-funded settlements) -- separate from the member ledger entirely. */
+  operatorNet: Prisma.Decimal;
 }
 
 export interface DashboardSummary {
@@ -17,7 +20,7 @@ export interface DashboardSummary {
   wallet: Prisma.Decimal;
   /** Business rule: Outstanding amount = Wallet Balance. */
   outstanding: Prisma.Decimal;
-  /** Net operator earnings: Profit - Loss - Commission paid out to members. */
+  /** Net operator earnings: Profit - Loss - Commission (member ledger) + operator's own account net. */
   profit: Prisma.Decimal;
   /** Profit as a percentage of capital deployed. */
   roi: Prisma.Decimal;
@@ -53,7 +56,7 @@ export function calculateDashboard(input: DashboardInput): DashboardSummary {
   const profitCredit = findTotal(input.ledgerTotals, LedgerType.PROFIT).credit;
   const lossDebit = findTotal(input.ledgerTotals, LedgerType.LOSS).debit;
   const commissionDebit = findTotal(input.ledgerTotals, LedgerType.COMMISSION).debit;
-  const profit = profitCredit.minus(lossDebit).minus(commissionDebit);
+  const profit = profitCredit.minus(lossDebit).minus(commissionDebit).plus(input.operatorNet);
 
   const roi = capitalUsed.isZero()
     ? new Prisma.Decimal(0)

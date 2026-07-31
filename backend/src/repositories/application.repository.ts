@@ -1,10 +1,11 @@
 import { prisma } from "../config/prisma";
 import { Prisma } from "../generated/prisma/client";
-import type { ApplicationStatus } from "../generated/prisma/client";
+import type { ApplicationStatus, FundingSource } from "../generated/prisma/client";
 
 export interface BulkApplicationItem {
   memberId: number;
   lots: number;
+  fundingSource?: FundingSource;
 }
 
 export interface UpdateAllotmentData {
@@ -51,6 +52,10 @@ export const applicationRepository = {
     return prisma.application.update({ where: { id }, data, include: withMember });
   },
 
+  updateFundingSource(id: number, fundingSource: FundingSource) {
+    return prisma.application.update({ where: { id }, data: { fundingSource }, include: withMember });
+  },
+
   async createMany(ipoId: number, applications: BulkApplicationItem[]) {
     return prisma.$transaction(async (tx) => {
       const created = [];
@@ -59,7 +64,12 @@ export const applicationRepository = {
       for (const application of applications) {
         try {
           const record = await tx.application.create({
-            data: { ipoId, memberId: application.memberId, lots: application.lots },
+            data: {
+              ipoId,
+              memberId: application.memberId,
+              lots: application.lots,
+              fundingSource: application.fundingSource,
+            },
             include: withMember,
           });
           created.push(record);

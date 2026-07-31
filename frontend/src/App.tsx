@@ -8,6 +8,7 @@ import { IposPage } from "./pages/Ipos/IposPage";
 import { LoginPage } from "./pages/Login/LoginPage";
 import { MemberDetailsPage } from "./pages/Members/MemberDetailsPage";
 import { MembersPage } from "./pages/Members/MembersPage";
+import { MyAccountPage } from "./pages/MyAccount/MyAccountPage";
 
 function App() {
   return (
@@ -22,6 +23,7 @@ function App() {
           <Route path="/ipos" element={<IposPage />} />
           <Route path="/ipos/:id" element={<IpoDetailPage />} />
           <Route path="/analysis" element={<AnalysisPage />} />
+          <Route path="/my-account" element={<MyAccountPage />} />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Route>
       </Route>

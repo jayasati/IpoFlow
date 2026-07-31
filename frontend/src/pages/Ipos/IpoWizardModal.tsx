@@ -32,6 +32,7 @@ export function IpoWizardModal({ open, onClose, onCreated }: IpoWizardModalProps
   const [groupId, setGroupId] = useState<number | "">("");
   const [selectedMemberIds, setSelectedMemberIds] = useState<Set<number>>(new Set());
   const [lotsByMember, setLotsByMember] = useState<Record<number, number>>({});
+  const [selfFundedMemberIds, setSelfFundedMemberIds] = useState<Set<number>>(new Set());
 
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -51,6 +52,7 @@ export function IpoWizardModal({ open, onClose, onCreated }: IpoWizardModalProps
     setGroupId("");
     setSelectedMemberIds(new Set());
     setLotsByMember({});
+    setSelfFundedMemberIds(new Set());
     setError(null);
 
     Promise.all([listGroups(), getDefaultGroup()])
@@ -92,6 +94,18 @@ export function IpoWizardModal({ open, onClose, onCreated }: IpoWizardModalProps
     setLotsByMember((prev) => ({ ...prev, [memberId]: lots }));
   };
 
+  const toggleSelfFunded = (memberId: number) => {
+    setSelfFundedMemberIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(memberId)) {
+        next.delete(memberId);
+      } else {
+        next.add(memberId);
+      }
+      return next;
+    });
+  };
+
   const goNext = () => setStep((s) => (s < 3 ? ((s + 1) as Step) : s));
   const goBack = () => setStep((s) => (s > 1 ? ((s - 1) as Step) : s));
 
@@ -114,6 +128,9 @@ export function IpoWizardModal({ open, onClose, onCreated }: IpoWizardModalProps
       const applications = Array.from(selectedMemberIds).map((memberId) => ({
         memberId,
         lots: lotsByMember[memberId] ?? 1,
+        fundingSource: selfFundedMemberIds.has(memberId)
+          ? ("SELF" as const)
+          : ("OPERATOR" as const),
       }));
 
       if (applications.length > 0) {
@@ -225,7 +242,10 @@ export function IpoWizardModal({ open, onClose, onCreated }: IpoWizardModalProps
                   <p className="text-sm text-slate-400">This group has no members.</p>
                 ) : (
                   currentGroup.members.map((m) => (
-                    <div key={m.memberId} className="flex items-center justify-between gap-2 py-1">
+                    <div
+                      key={m.memberId}
+                      className="flex flex-wrap items-center justify-between gap-2 py-1"
+                    >
                       <label className="flex items-center gap-2 text-sm text-slate-700">
                         <input
                           type="checkbox"
@@ -234,14 +254,25 @@ export function IpoWizardModal({ open, onClose, onCreated }: IpoWizardModalProps
                         />
                         {m.member.name}
                       </label>
-                      <input
-                        type="number"
-                        min={1}
-                        value={lotsByMember[m.memberId] ?? 1}
-                        disabled={!selectedMemberIds.has(m.memberId)}
-                        onChange={(event) => setLots(m.memberId, Number(event.target.value))}
-                        className="w-20 rounded border border-slate-300 px-2 py-1 text-sm disabled:bg-slate-50"
-                      />
+                      <div className="flex items-center gap-3">
+                        <label className="flex items-center gap-1.5 text-xs text-slate-500">
+                          <input
+                            type="checkbox"
+                            checked={selfFundedMemberIds.has(m.memberId)}
+                            disabled={!selectedMemberIds.has(m.memberId)}
+                            onChange={() => toggleSelfFunded(m.memberId)}
+                          />
+                          Self-funded
+                        </label>
+                        <input
+                          type="number"
+                          min={1}
+                          value={lotsByMember[m.memberId] ?? 1}
+                          disabled={!selectedMemberIds.has(m.memberId)}
+                          onChange={(event) => setLots(m.memberId, Number(event.target.value))}
+                          className="w-20 rounded border border-slate-300 px-2 py-1 text-sm disabled:bg-slate-50"
+                        />
+                      </div>
                     </div>
                   ))
                 )}

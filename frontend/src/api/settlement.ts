@@ -11,6 +11,9 @@ export interface SettlementOutcome {
   isProfit: boolean;
 }
 
-export function createSettlement(applicationId: number): Promise<SettlementOutcome> {
-  return apiPost("/settlement", { applicationId });
+export function createSettlement(
+  applicationId: number,
+  operatorAmount?: number,
+): Promise<SettlementOutcome> {
+  return apiPost("/settlement", { applicationId, operatorAmount });
 }

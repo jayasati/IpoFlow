@@ -5,6 +5,7 @@ import {
   applicationListQuerySchema,
   bulkApplicationSchema,
   updateAllotmentSchema,
+  updateFundingSourceSchema,
 } from "../validation/application.validation";
 
 export async function listApplications(req: Request, res: Response): Promise<void> {
@@ -32,5 +33,12 @@ export async function updateAllotment(req: Request, res: Response): Promise<void
   const { id } = idParamSchema.parse(req.params);
   const { shares } = updateAllotmentSchema.parse(req.body);
   const application = await applicationService.updateAllotment(id, shares);
+  res.json(application);
+}
+
+export async function updateFundingSource(req: Request, res: Response): Promise<void> {
+  const { id } = idParamSchema.parse(req.params);
+  const { fundingSource } = updateFundingSourceSchema.parse(req.body);
+  const application = await applicationService.updateFundingSource(id, fundingSource);
   res.json(application);
 }

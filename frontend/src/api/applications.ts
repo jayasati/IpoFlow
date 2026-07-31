@@ -1,5 +1,10 @@
 import { apiGet, apiPost, apiPut } from "./client";
-import type { Application, BulkApplicationItem, BulkApplicationResult } from "../types/application";
+import type {
+  Application,
+  BulkApplicationItem,
+  BulkApplicationResult,
+  FundingSource,
+} from "../types/application";
 
 export function listApplications(ipoId: number): Promise<{ data: Application[] }> {
   return apiGet(`/applications?ipoId=${ipoId}`);
@@ -18,4 +23,8 @@ export function bulkCreateApplications(
 
 export function updateAllotment(id: number, shares: number): Promise<Application> {
   return apiPut(`/applications/${id}/allotment`, { shares });
+}
+
+export function updateFundingSource(id: number, fundingSource: FundingSource): Promise<Application> {
+  return apiPut(`/applications/${id}/funding-source`, { fundingSource });
 }

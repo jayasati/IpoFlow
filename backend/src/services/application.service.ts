@@ -4,6 +4,7 @@ import { ipoService } from "./ipo.service";
 import { APPLICATION_ACCEPTING_STATUSES } from "./ipoStateMachine";
 import { NotFoundError, ValidationError } from "../errors/AppError";
 import { ApplicationStatus } from "../generated/prisma/client";
+import type { FundingSource } from "../generated/prisma/client";
 
 /** Once selling has started, the allotted share count is locked in. */
 const ALLOTMENT_LOCKED_STATUSES: ApplicationStatus[] = [
@@ -47,6 +48,16 @@ export const applicationService = {
 
     const status = shares > 0 ? ApplicationStatus.ALLOTTED : ApplicationStatus.NOT_ALLOTTED;
     return applicationRepository.updateAllotment(applicationId, { shares, status });
+  },
+
+  async updateFundingSource(applicationId: number, fundingSource: FundingSource) {
+    const application = await this.getById(applicationId);
+
+    if (application.status === ApplicationStatus.SETTLED) {
+      throw new ValidationError("Cannot change funding source after settlement.");
+    }
+
+    return applicationRepository.updateFundingSource(applicationId, fundingSource);
   },
 
   async bulkCreate(ipoId: number, applications: BulkApplicationItem[]) {
