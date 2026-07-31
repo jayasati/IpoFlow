@@ -2,7 +2,11 @@ import type { Request, Response } from "express";
 import { ledgerService } from "../services/ledger.service";
 import { walletService } from "../services/wallet.service";
 import { idParamSchema } from "../validation/common.validation";
-import { ledgerListQuerySchema, recordMoneyMovementSchema } from "../validation/ledger.validation";
+import {
+  ledgerListQuerySchema,
+  recordAdjustmentSchema,
+  recordMoneyMovementSchema,
+} from "../validation/ledger.validation";
 
 export async function getMemberLedger(req: Request, res: Response): Promise<void> {
   const { id } = idParamSchema.parse(req.params);
@@ -38,5 +42,12 @@ export async function recordCommission(req: Request, res: Response): Promise<voi
   const { id } = idParamSchema.parse(req.params);
   const input = recordMoneyMovementSchema.parse(req.body);
   const entry = await ledgerService.recordCommission(id, input);
+  res.status(201).json(entry);
+}
+
+export async function recordAdjustment(req: Request, res: Response): Promise<void> {
+  const { id } = idParamSchema.parse(req.params);
+  const input = recordAdjustmentSchema.parse(req.body);
+  const entry = await ledgerService.recordAdjustment(id, input);
   res.status(201).json(entry);
 }

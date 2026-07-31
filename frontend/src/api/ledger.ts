@@ -1,6 +1,11 @@
 import { apiGet, apiPost } from "./client";
 import type { PaginatedResponse } from "../types/pagination";
-import type { LedgerEntry, RecordMoneyMovementInput, WalletBalance } from "../types/ledger";
+import type {
+  LedgerEntry,
+  RecordAdjustmentInput,
+  RecordMoneyMovementInput,
+  WalletBalance,
+} from "../types/ledger";
 
 export function getWallet(memberId: number): Promise<WalletBalance> {
   return apiGet(`/members/${memberId}/wallet`);
@@ -33,4 +38,11 @@ export function recordCommission(
   input: RecordMoneyMovementInput,
 ): Promise<LedgerEntry> {
   return apiPost(`/members/${memberId}/ledger/commission`, input);
+}
+
+export function recordAdjustment(
+  memberId: number,
+  input: RecordAdjustmentInput,
+): Promise<LedgerEntry> {
+  return apiPost(`/members/${memberId}/ledger/adjustment`, input);
 }

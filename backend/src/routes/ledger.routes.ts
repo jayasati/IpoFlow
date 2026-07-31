@@ -2,6 +2,7 @@ import { Router } from "express";
 import {
   getMemberLedger,
   getMemberWallet,
+  recordAdjustment,
   recordCommission,
   recordMoneyReturned,
   recordMoneySent,
@@ -14,4 +15,5 @@ ledgerRouter.get("/ledger", getMemberLedger);
 ledgerRouter.post("/ledger/money-sent", recordMoneySent);
 ledgerRouter.post("/ledger/money-returned", recordMoneyReturned);
 ledgerRouter.post("/ledger/commission", recordCommission);
+ledgerRouter.post("/ledger/adjustment", recordAdjustment);
 ledgerRouter.get("/wallet", getMemberWallet);

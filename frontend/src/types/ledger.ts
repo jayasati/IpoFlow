@@ -25,3 +25,7 @@ export interface RecordMoneyMovementInput {
   ipoId?: number;
   description?: string;
 }
+
+export interface RecordAdjustmentInput extends RecordMoneyMovementInput {
+  direction: "credit" | "debit";
+}

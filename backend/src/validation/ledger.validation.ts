@@ -7,9 +7,14 @@ export const recordMoneyMovementSchema = z.object({
   description: z.string().trim().max(500).optional(),
 });
 
+export const recordAdjustmentSchema = recordMoneyMovementSchema.extend({
+  direction: z.enum(["credit", "debit"]),
+});
+
 export const ledgerListQuerySchema = paginationQuerySchema.extend({
   ipoId: z.coerce.number().int().positive().optional(),
 });
 
 export type RecordMoneyMovementInput = z.infer<typeof recordMoneyMovementSchema>;
+export type RecordAdjustmentInput = z.infer<typeof recordAdjustmentSchema>;
 export type LedgerListQuery = z.infer<typeof ledgerListQuerySchema>;
